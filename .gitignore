@@ -3,4 +3,5 @@ build/**
 .build/**
 .cache/
 __pycache__/**
+**/__pycache__/**
 dev/
