@@ -1,24 +1,22 @@
 from zero import *
 
+C_STANDARD = Flags.gcc.std_c17
+CPP_STANDARD = Flags.gcc.std_cpp20
+
 # Options
 
-debug = UserOptions.get("debug")
-debug = True if debug == "true" else False
+DEBUG = True if UserOptions.get("debug") == "true" else False
 
-DEBUG_MACRO = Macro("CT_CONF_DEBUG")
-
+if DEBUG:
+	print("Debug mode is on.") 
 
 #  Configuration
 
 build = Build()
 
-build.default_compiler = "gcc"
+build.compiler = "gcc"
 build.directory = "build"
-build.arguments = Flags.Wall, Flags.Wextra, Flags.g
-
-build.compilers.arguments["gcc"] = Flags.std_c17
-build.compilers.arguments["g++"] = Flags.std_cpp20
-
+build.arguments = Flags.gcc.Wall, Flags.gcc.Wextra, Flags.gcc.g
 build.export_compile_commands = True
 
 
@@ -29,7 +27,7 @@ CuteInstr.source = Source(
 	Path("Instr") / "image.c"
 )
 CuteInstr.headers.public = Path("Instr") / "include"
-
+CuteInstr.arguments = C_STANDARD
 
 # Cute Engine
 
@@ -52,8 +50,10 @@ CuteRuntime.source = Source(
 
 CuteRuntime.link(CuteInstr)
 
-if debug:
-	CuteRuntime.arguments = DEBUG_MACRO
+if DEBUG:
+	CuteRuntime.arguments = Flags.Macro("CT_CONF_DEBUG"), C_STANDARD
+else:
+	CuteRuntime.arguments = C_STANDARD
 
 
 # cute binary
@@ -79,6 +79,7 @@ CuteAsm.source = Source(
 	src / "assembler" / "assembler.cpp"
 )
 
+CuteAsm.arguments = CPP_STANDARD
 CuteAsm.link(CuteInstr)
 
 
