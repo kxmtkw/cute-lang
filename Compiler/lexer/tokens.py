@@ -24,6 +24,10 @@ class KeywordType(Enum):
 	Container = "container"
 	BoolTrue = "true"
 	BoolFalse = "false"
+	While = "while"
+	For = "for"
+	If = "if"
+	Else = "else"
 
 
 class SymbolType(Enum):
