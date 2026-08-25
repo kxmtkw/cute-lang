@@ -15,13 +15,13 @@ class TokenType(Enum):
 	Keyword = auto()
 	EOL = auto()
 	EOF = auto()
+
+
 class KeywordType(Enum):
 	Func = "func"
+	Return = "return"
 	Let = "let"
 	Container = "container"
-	Box = "box"
-	Raw = "raw"
-	Atom = "atom"
 	BoolTrue = "true"
 	BoolFalse = "false"
 
@@ -60,9 +60,9 @@ class SymbolType(Enum):
 	Dot = "."
 	Hashtag = "#"
 
+
 KEYWORD_MAP = {k.value: k for k in KeywordType}
 SYMBOL_MAP = {s.value: s for s in SymbolType}
-
 
 TokenValue = Union[int, float, bool, str, SymbolType, KeywordType, None]
 
