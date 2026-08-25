@@ -3,62 +3,62 @@ from typing import Union, List, Optional
 
 
 class TokenType(Enum):
-	INT = auto()
-	HEX = auto()
-	BIN = auto()
-	FLOAT = auto()
-	BOOL = auto()
-	WORD = auto()
-	STRING = auto()
-	CHAR = auto()
-	SYMBOL = auto()
-	KEYWORD = auto()
+	Int = auto()
+	Hex = auto()
+	Bin = auto()
+	Float = auto()
+	Bool = auto()
+	Word = auto()
+	String = auto()
+	Char = auto()
+	Symbol = auto()
+	Keyword = auto()
 	EOL = auto()
 	EOF = auto()
-
-
 class KeywordType(Enum):
-	FUNC = "func"
-	LET = "let"
-	CONTAINER = "container"
-	RAW = "raw"
-	ATOM = "atom"
+	Func = "func"
+	Let = "let"
+	Container = "container"
+	Box = "box"
+	Raw = "raw"
+	Atom = "atom"
+	BoolTrue = "true"
+	BoolFalse = "false"
 
 
 class SymbolType(Enum):
-	PLUS = "+"
-	MINUS = "-"
-	STAR = "*"
-	DSTAR = "**"
-	SLASH = "/"
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACKET = "["
-	RBRACKET = "]"
-	LBRACE = "{"
-	RBRACE = "}"
-	BANG = "!"
-	ASSIGN = "="
-	EQ = "=="
-	NEQ = "!="
-	GTE = ">="
-	LTE = "<="
-	LT = "<"
-	GT = ">"
-	DOUBLELT = "<<"
-	DOUBLEGT = ">>"
-	PERCENT = "%"
-	CARET = "^"
-	AMP = "&"
-	PIPE = "|"
-	AND = "&&"
-	OR = "||"
-	COLON = ":"
-	SEMICOLON = ";"
-	COMMA = ","
-	DOT = "."
-	HASHTAG = "#"
-
+	Plus = "+"
+	Minus = "-"
+	Star = "*"
+	DStar = "**"
+	Slash = "/"
+	LParen = "("
+	RParen = ")"
+	LBracket = "["
+	RBracket = "]"
+	LBrace = "{"
+	RBrace = "}"
+	Bang = "!"
+	Assign = "="
+	Eq = "=="
+	Neq = "!="
+	Gte = ">="
+	Lte = "<="
+	Lt = "<"
+	Gt = ">"
+	DoubleLt = "<<"
+	DoubleGt = ">>"
+	Percent = "%"
+	Caret = "^"
+	Amp = "&"
+	Pipe = "|"
+	And = "&&"
+	Or = "||"
+	Colon = ":"
+	Semicolon = ";"
+	Comma = ","
+	Dot = "."
+	Hashtag = "#"
 
 KEYWORD_MAP = {k.value: k for k in KeywordType}
 SYMBOL_MAP = {s.value: s for s in SymbolType}
