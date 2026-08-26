@@ -54,7 +54,7 @@ class Parser:
 		return nodes
 
 	
-	def parse_expression(self, prev_bp: int = -2) -> Node.Expression:
+	def parse_expression(self, prev_bp: int = -2) -> Node.Expression | None:
 
 		sym = self.expect_token_type(TokenType.Symbol)
 
@@ -76,8 +76,7 @@ class Parser:
 			)
 
 		else:
-			raise ValueError("Unexpected token at expression start.")
-
+			raise ValueError(f"Unexpected token {self.peek()}")
 
 		while True:
 
@@ -91,10 +90,18 @@ class Parser:
 
 			if symbol.value in [
 				SymbolType.RParen,
-				SymbolType.Semicolon
+				SymbolType.Semicolon,
+				SymbolType.Comma
 			]:
 				self.backtrack()
 				return lhs
+
+			if symbol.value == SymbolType.LParen:
+				self.backtrack()
+				if prev_bp >= r.PARENTHESIS_INFIX_BP:
+					return lhs
+				lhs = self.parse_call(lhs)
+				continue
 			
 			operation = r.BINARY_OPERATOR_MAPPING.get(
 				symbol.value,
@@ -102,7 +109,7 @@ class Parser:
 			)
 
 			if operation is None:
-				raise ValueError("Unknown token")
+				raise ValueError(f"Unknown token: {self.peek()}")
 
 			l_bp, r_bp = r.OPERATOR_BINDING_POWER[operation]
 
@@ -136,7 +143,28 @@ class Parser:
 			)
 
 		if token.type == TokenType.Word:
+
 			self.advance()
+
 			return Node.Identifier(
 				token.value
 			)
+
+
+	def parse_call(self, callee: Node.Expression) -> Node.Call:
+
+		self.expect_symbol(SymbolType.LParen)
+
+		args = []
+
+		while self.expect_symbol(SymbolType.RParen) is None:
+			args.append(self.parse_expression())
+			self.expect_symbol(SymbolType.Comma)
+
+		return Node.Call(
+			callee,
+			args
+		)
+
+		
+

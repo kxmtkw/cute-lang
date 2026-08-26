@@ -156,7 +156,7 @@ class Node:
 
 	@dataclass
 	class Call(Expression):
-		name: str
+		callee: "Node.Expression" 
 		args: List["Node.Expression"]
 
 

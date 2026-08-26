@@ -63,3 +63,5 @@ OPERATOR_BINDING_POWER: dict[Union[BinaryOpType, UnaryOpType], tuple[float, floa
 	UnaryOpType.BitNot: (11.1, 11),
 	BinaryOpType.Access: (12, 12.1)
 }
+
+PARENTHESIS_INFIX_BP = 11.9
