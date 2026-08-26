@@ -70,6 +70,15 @@ Reads an int and writes the value to $x.
 
 ---
 
+#### CT_INSTR_LOAD_U32        `0x23`
+Assembler Repr: `loadu32`
+```
+loadu32 $x imm32 // imm32 -> $x
+```
+Reads an uint and writes the value to $x.
+
+---
+
 #### CT_INSTR_LOAD_F32        `0x24`
 Assembler Repr: `loadf32`
 ```
@@ -106,7 +115,7 @@ Loads an u64 from the data section with offset imm32.
 
 ---
 
-#### CT_INSTR_READ_F64        `0x26`
+#### CT_INSTR_READ_F64        `0x28`
 Assembler Repr: `readf64`
 ```
 readf64 $x imm32 // imm64 -> $x
