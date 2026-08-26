@@ -47,6 +47,8 @@ class Parser:
 	def parse(self):
 		nodes = []
 		while self.peek().type != TokenType.EOF:
+			if self.expect_token_type(TokenType.EOL):
+				continue
 			nodes.append(self.parse_expression())
 
 		return nodes
@@ -72,6 +74,9 @@ class Parser:
 				unary,
 				lhs
 			)
+
+		else:
+			raise ValueError("Unexpected token at expression start.")
 
 
 		while True:
