@@ -48,13 +48,22 @@ class Parser:
 	def parse(self):
 		nodes = []
 		while self.peek().type != TokenType.EOF:
-			if self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
-				continue
-			nodes.append(self.parse_expression())
-
+			nodes.append(self.parse_statement())
 		return nodes
 
-	
+
+	def parse_statement(self) -> Node.Expression:
+
+		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
+			pass
+
+		if self.expect_keyword(KeywordType.Let):
+			self.backtrack()
+			return self.parse_decl()
+		else:
+			return self.parse_expression()
+		
+
 	def parse_expression(self, prev_bp: int = -2) -> Node.Expression | None:
 
 		sym = self.expect_token_type(TokenType.Symbol)
@@ -167,5 +176,26 @@ class Parser:
 			args
 		)
 
-		
+
+	def parse_decl(self) -> Node.Declaration:
+
+		self.expect_keyword(KeywordType.Let)
+
+		name = self.expect_token_type(TokenType.Word)
+
+		if self.expect_symbol(SymbolType.Colon):
+			decl_type = self.expect_token_type(TokenType.Word).value
+		else:
+			decl_type = None
+
+		if self.expect_symbol(SymbolType.Assign):
+			value = self.parse_expression()
+		else:
+			value = None
+
+		return Node.Declaration(
+			name.value,
+			decl_type,
+			value
+		)
 
