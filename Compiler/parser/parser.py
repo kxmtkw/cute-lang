@@ -30,32 +30,49 @@ class Parser:
 		self.pos -= steps
 
 
-	def expect_token_type(self, type: TokenType) -> Token | None:
+	def expect_token_type(self, type: TokenType, panic: bool = False) -> Token | None:
 		if self.peek().type == type:
 			return self.advance()
 
+		if panic:
+			print(f"Expected {type.name}, got {self.peek().type}")
+			exit(1)
 
-	def expect_keyword(self, kw: KeywordType) -> Token | None:
+
+	def expect_keyword(self, kw: KeywordType, panic: bool = False) -> Token | None:
 		if self.peek().type == TokenType.Keyword and self.peek().value == kw:
 			return self.advance()
 
+		if panic:
+			print(f"Expected {kw.value}, got {self.peek().value}")
+			exit(1)
 
-	def expect_symbol(self, sym: SymbolType) -> Token | None:
+
+	def expect_symbol(self, sym: SymbolType, panic: bool = False) -> Token | None:
 		if self.peek().type == TokenType.Symbol and self.peek().value == sym:
 			return self.advance()
+
+		if panic:
+			print(f"Expected {sym.value}, got {self.peek().value}")
+			exit(1)
 
 	
 	def parse(self):
 		nodes = []
 		while self.peek().type != TokenType.EOF:
-			nodes.append(self.parse_statement())
+			stmt = self.parse_statement()
+			if stmt: nodes.append(stmt)
+
 		return nodes
 
 
-	def parse_statement(self) -> Node.Expression:
+	def parse_statement(self) -> Node.Expression | None:
 
 		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
-			pass
+			continue
+
+		if self.peek().value in r.STATEMENT_ENDERS:
+			return None
 
 		if self.expect_keyword(KeywordType.Let):
 			self.backtrack()
@@ -64,7 +81,7 @@ class Parser:
 			return self.parse_expression()
 		
 
-	def parse_expression(self, prev_bp: int = -2) -> Node.Expression | None:
+	def parse_expression(self, prev_bp: int = -2) -> Node.Expression:
 
 		sym = self.expect_token_type(TokenType.Symbol)
 
@@ -87,6 +104,7 @@ class Parser:
 
 		else:
 			raise ValueError(f"Unexpected token {self.peek()}")
+	
 
 		while True:
 
@@ -96,13 +114,9 @@ class Parser:
 			]:
 				return lhs
 
-			symbol = self.expect_token_type(TokenType.Symbol)
+			symbol = self.expect_token_type(TokenType.Symbol, True)
 
-			if symbol.value in [
-				SymbolType.RParen,
-				SymbolType.Semicolon,
-				SymbolType.Comma
-			]:
+			if symbol.value in r.STATEMENT_ENDERS:
 				self.backtrack()
 				return lhs
 
@@ -160,16 +174,19 @@ class Parser:
 				token.value
 			)
 
+		print("Expected atomic expression!")
+		exit(1)
+
 
 	def parse_call(self, callee: Node.Expression) -> Node.Call:
 
-		self.expect_symbol(SymbolType.LParen)
+		self.expect_symbol(SymbolType.LParen, True)
 
 		args = []
 
 		while self.expect_symbol(SymbolType.RParen) is None:
 			args.append(self.parse_expression())
-			self.expect_symbol(SymbolType.Comma)
+			self.expect_symbol(SymbolType.Comma, True)
 
 		return Node.Call(
 			callee,
@@ -179,12 +196,12 @@ class Parser:
 
 	def parse_decl(self) -> Node.Declaration:
 
-		self.expect_keyword(KeywordType.Let)
+		self.expect_keyword(KeywordType.Let, True)
 
-		name = self.expect_token_type(TokenType.Word)
+		name = self.expect_token_type(TokenType.Word, True)
 
 		if self.expect_symbol(SymbolType.Colon):
-			decl_type = self.expect_token_type(TokenType.Word).value
+			decl_type = self.expect_token_type(TokenType.Word, True).value
 		else:
 			decl_type = None
 
@@ -198,4 +215,3 @@ class Parser:
 			decl_type,
 			value
 		)
-

@@ -1,6 +1,6 @@
 from typing import Union
 
-from Compiler.lexer.tokens import SymbolType
+from Compiler.lexer.tokens import SymbolType, TokenType
 from Compiler.parser.nodes import BinaryOpType, UnaryOpType
 
 
@@ -65,3 +65,11 @@ OPERATOR_BINDING_POWER: dict[Union[BinaryOpType, UnaryOpType], tuple[float, floa
 }
 
 PARENTHESIS_INFIX_BP = 11.9
+
+STATEMENT_ENDERS = [
+	SymbolType.RParen,
+	SymbolType.RBrace,
+	SymbolType.RBracket,
+	SymbolType.Semicolon,
+	SymbolType.Comma
+]
