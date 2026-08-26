@@ -3,6 +3,7 @@ from Compiler.lexer.tokens import KeywordType, SymbolType, Token, TokenType
 from Compiler.parser.nodes import Node
 import Compiler.parser.rules as r
 
+
 class Parser:
 
 
@@ -47,7 +48,7 @@ class Parser:
 	def parse(self):
 		nodes = []
 		while self.peek().type != TokenType.EOF:
-			if self.expect_token_type(TokenType.EOL):
+			if self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
 				continue
 			nodes.append(self.parse_expression())
 
