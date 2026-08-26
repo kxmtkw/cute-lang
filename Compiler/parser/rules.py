@@ -7,6 +7,7 @@ from Compiler.parser.nodes import BinaryOpType, UnaryOpType
 
 BINARY_OPERATOR_MAPPING: dict[SymbolType, BinaryOpType] = {
 	SymbolType.Assign: BinaryOpType.Assign,
+	SymbolType.Dot: BinaryOpType.Access,
 	SymbolType.Plus: BinaryOpType.Add,
 	SymbolType.Minus: BinaryOpType.Sub,
 	SymbolType.Star: BinaryOpType.Mul,
@@ -60,4 +61,5 @@ OPERATOR_BINDING_POWER: dict[Union[BinaryOpType, UnaryOpType], tuple[float, floa
 	UnaryOpType.Negate: (11.1, 11),
 	UnaryOpType.Not: (11.1, 11),
 	UnaryOpType.BitNot: (11.1, 11),
+	BinaryOpType.Access: (12, 12.1)
 }

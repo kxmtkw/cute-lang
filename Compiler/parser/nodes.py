@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 
 class BinaryOpType(Enum):
+	Access = auto()
 	Assign = auto()
 	Add = auto()
 	Sub = auto()
