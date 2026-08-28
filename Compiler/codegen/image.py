@@ -17,7 +17,7 @@ class Format:
 	f64 = "<d"
 	str = lambda l: f"{l}s"
 
-HEADER_FORMAT = "<IHHHxxIII"
+HEADER_FORMAT = "<7I"
 
 
 class ImageBuilder:
