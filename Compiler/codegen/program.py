@@ -104,7 +104,7 @@ class ReferenceUnit(ABC):
 		pass
 
 	@abstractmethod
-	def refer(self, builder: ImageBuilder):
+	def refer(self, builder: ImageBuilder) -> str:
 		pass
 
 
@@ -124,7 +124,10 @@ class Instruction(CompileableUnit):
 			arg = self.arguments[i]
 
 			if isinstance(arg, ReferenceUnit):
-				arg.refer(builder)
+				fmt = arg.refer(builder)
+
+				if fmt != arg_fmts[i]:
+					raise ValueError(f"Incompatible reference unit. Cannot write {fmt} in place of {arg_fmts[i]}")
 				continue
 
 			builder.add_to_instr_pool(arg_fmts[i], arg)
@@ -152,8 +155,12 @@ class Constant(CompileableUnit, ReferenceUnit):
 		self._offset = builder.add_to_data_blob(self.fmt, self.value)
 
 	def refer(self, builder: ImageBuilder) -> str:
+
+		if not hasattr(self, "_offset"):
+			raise ValueError(f"{self} not registered yet. Does not have offset!")
+		
 		builder.add_to_instr_pool(Format.u32, self._offset)
-		return Format.i32
+		return Format.u32
 
 
 @dataclass

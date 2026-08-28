@@ -68,7 +68,7 @@ class ImageBuilder:
 
 	def mark_label(self, label_id: int):
 		if label_id in self.label_addresses:
-			raise ValueError(f"Jump already registered: {label_id}")
+			raise ValueError(f"Label already registered: {label_id}")
 		self.label_addresses[label_id] = self.get_address()
 
 
@@ -80,9 +80,7 @@ class ImageBuilder:
 
 		for refr_address, label in self.label_references.items():
 			if label not in self.label_addresses:
-				print(label)
-				print(self.label_addresses)
-				raise ValueError()
+				raise ValueError(f"Label {label} not found.")
 
 			label_address = self.label_addresses[label]
 
