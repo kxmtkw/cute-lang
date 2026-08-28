@@ -10,9 +10,9 @@
 // Versioning
 
 typedef struct {
-	uint16_t major;
-	uint16_t minor;
-	uint16_t patch;
+	uint32_t major;
+	uint32_t minor;
+	uint32_t patch;
 } CtVersion;
 
 static const CtVersion ct_version = {1, 0, 0};
