@@ -7,6 +7,8 @@ MAGIC_ID = 0x63757465
 class Format:
 	i8 = "<b"
 	u8 = "<B"
+	i16 = "<h"
+	u16 = "<H"
 	i32 = "<i"
 	u32 = "<I"
 	f32 = "<f"
@@ -33,6 +35,9 @@ class ImageBuilder:
 
 		self.instruction_pool = bytearray()
 
+		self.label_addresses: dict[int, int] = {} # label id to label address
+		self.label_references: dict[int, int] = {} # reference address to label id
+
 
 	def new_proc(self, procedure_id: int, arg_count: int) -> int:
 		
@@ -55,11 +60,40 @@ class ImageBuilder:
 		return len(self.instruction_pool)
 
 
-
 	def add_to_instr_pool(self, fmt: str, value: int | float) -> int:
 		offset = len(self.instruction_pool)
 		self.instruction_pool.extend(struct.pack(fmt, value))
 		return offset
+
+
+	def mark_label(self, label_id: int):
+		if label_id in self.label_addresses:
+			raise ValueError(f"Jump already registered: {label_id}")
+		self.label_addresses[label_id] = self.get_address()
+
+
+	def refer_label(self, label_id: int):
+		self.label_references[self.get_address()] = label_id
+
+
+	def resolve_labels(self):
+
+		for refr_address, label in self.label_references.items():
+			if label not in self.label_addresses:
+				print(label)
+				print(self.label_addresses)
+				raise ValueError()
+
+			label_address = self.label_addresses[label]
+
+			offset = label_address - (refr_address + 4)
+
+			self.insert_to_instr_pool(Format.i32, offset, refr_address)
+
+
+	def clear_labels(self):
+		self.label_addresses.clear()
+		self.label_references.clear()
 
 
 	def insert_to_instr_pool(self, fmt: str, value: int | float, address: int) -> None:
