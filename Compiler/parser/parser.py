@@ -59,29 +59,42 @@ class Parser:
 	
 	def parse(self):
 		nodes = []
+
 		while self.peek().type != TokenType.EOF:
 			stmt = self.parse_statement()
 			if stmt: nodes.append(stmt)
 
-		return nodes
+		main = Node.Function(
+			"main",
+			[],
+			nodes
+		)
+
+		program = Node.Program(
+			[main]
+		)
+
+		return program
 
 
-	def parse_statement(self) -> Node.Expression | None:
+	def parse_statement(self) -> Node.Expression:
+
+		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
+			continue
+		
+		if self.expect_keyword(KeywordType.Let):
+			self.backtrack()
+			node = self.parse_decl()
+		else:
+			node = self.parse_expression()
 
 		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
 			continue
 
-		if self.peek().value in r.STATEMENT_ENDERS:
-			return None
-
-		if self.expect_keyword(KeywordType.Let):
-			self.backtrack()
-			return self.parse_decl()
-		else:
-			return self.parse_expression()
+		return node
 		
 
-	def parse_expression(self, prev_bp: int = -2) -> Node.Expression:
+	def parse_expression(self, prev_bp: float = -2) -> Node.Expression:
 
 		sym = self.expect_token_type(TokenType.Symbol)
 
@@ -116,6 +129,9 @@ class Parser:
 
 			symbol = self.expect_token_type(TokenType.Symbol, True)
 
+			if symbol is None:
+				raise ValueError("Expected symbol.")
+			
 			if symbol.value in r.STATEMENT_ENDERS:
 				self.backtrack()
 				return lhs
@@ -126,11 +142,9 @@ class Parser:
 					return lhs
 				lhs = self.parse_call(lhs)
 				continue
-			
-			operation = r.BINARY_OPERATOR_MAPPING.get(
-				symbol.value,
-				r.UNARY_OP_MAPPING.get(symbol)
-			)
+
+			# symbol token will always be a token, do not need to check it here
+			operation = r.BINARY_OPERATOR_MAPPING.get(symbol.value, r.UNARY_OP_MAPPING.get(symbol)) # type: ignore
 
 			if operation is None:
 				raise ValueError(f"Unknown token: {self.peek()}")
@@ -162,20 +176,15 @@ class Parser:
 			TokenType.String
 		]:
 			self.advance()
-			return Node.Literal(
-				token.value
-			)
+			return Node.Literal(token.value) # type: ignore
 
 		if token.type == TokenType.Word:
 
 			self.advance()
 
-			return Node.Identifier(
-				token.value
-			)
+			return Node.Identifier(token.value) # type: ignore
 
-		print("Expected atomic expression!")
-		exit(1)
+		raise ValueError(f"Expected atomic expression! Got {self.peek().type}")
 
 
 	def parse_call(self, callee: Node.Expression) -> Node.Call:
@@ -201,7 +210,7 @@ class Parser:
 		name = self.expect_token_type(TokenType.Word, True)
 
 		if self.expect_symbol(SymbolType.Colon):
-			decl_type = self.expect_token_type(TokenType.Word, True).value
+			decl_type = self.expect_token_type(TokenType.Word, True).value # type: ignore
 		else:
 			decl_type = None
 
@@ -210,8 +219,4 @@ class Parser:
 		else:
 			value = None
 
-		return Node.Declaration(
-			name.value,
-			decl_type,
-			value
-		)
+		return Node.Declaration(name.value, decl_type, value)  # type: ignore
