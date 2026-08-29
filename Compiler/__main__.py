@@ -1,6 +1,8 @@
 import sys
 from Compiler.lexer.lexer import Lexer
 from Compiler.parser.parser import Parser
+from Compiler.codegen.generator import CodeGenerator
+
 
 def main():
 	filepath = sys.argv[1] 
@@ -20,11 +22,13 @@ def main():
 	print("\n" + "-"*10 + "\n")
 
 	parser = Parser(tokens)
-
-	for d in parser.parse():
-		print(d.dump())
+	program = parser.parse()
+	print(program.dump())
 
 	print("\n" + "-"*10 + "\n")
+
+	gen = CodeGenerator()
+	gen.visit(program)
 
 
 if __name__ == "__main__":
