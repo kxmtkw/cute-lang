@@ -68,6 +68,7 @@ PARENTHESIS_INFIX_BP = 11.9
 
 STATEMENT_ENDERS = [
 	SymbolType.RParen,
+	SymbolType.LBrace,
 	SymbolType.RBrace,
 	SymbolType.RBracket,
 	SymbolType.Semicolon,

@@ -5,6 +5,8 @@ from Compiler.codegen.program import Program, Procedure, Label, Constant, Instru
 
 SLOT_COUNT = 256
 
+# todoo tmp slot logic because right now (a+b) will free the slots of the variable a and b
+
 
 class GeneratorState:
 
@@ -12,8 +14,10 @@ class GeneratorState:
 	def __init__(self) -> None:
 		self._current_procedure: Procedure | None = None
 		self._proc_slots: list[bool] = []
-		self._temp_slots: list[int] = []
+		self._tmp_slots: set[int] = set()
+		self._slots_stack: list[int] = []
 		self._variable_assignments: dict[str, int] = {} # variable name to slot
+		self._label_num: int = 0
 
 
 	def new_procedure(self, proc: Procedure):
@@ -21,6 +25,8 @@ class GeneratorState:
 			raise ValueError()
 		self._current_procedure = proc
 		self._proc_slots = [False for slot in range(SLOT_COUNT)]
+		self._tmp_slots: set[int] = set()
+		self._slots_stack.clear()
 		self._variable_assignments.clear()
 
 
@@ -45,16 +51,32 @@ class GeneratorState:
 		return None
 
 
+	def get_tmp_slot(self) -> int | None:
+		for i, slot in enumerate(self._proc_slots):
+			if not slot:
+				self._proc_slots[i] = True
+				self._tmp_slots.add(i)
+				return i
+		return None
+	
+
 	def free_slot(self, slot: int):
 		self._proc_slots[slot] = False
+		if slot in self._tmp_slots: self._tmp_slots.remove(slot)
 
 
-	def push_temp_slot(self, slot: int):
-		self._temp_slots.append(slot)
+	def free_slot_if_tmp(self, slot: int):
+		if slot in self._tmp_slots:
+			self._proc_slots[slot] = False
+			self._tmp_slots.remove(slot)
 
 
-	def pop_temp_slot(self) -> int:
-		return self._temp_slots.pop()
+	def push_slot(self, slot: int):
+		self._slots_stack.append(slot)
+
+
+	def pop_slot(self) -> int:
+		return self._slots_stack.pop()
 
 
 	def set_variable_slot(self, name: str, slot: int):
@@ -63,6 +85,11 @@ class GeneratorState:
 
 	def get_variable_slot(self, name: str) -> int:
 		return self._variable_assignments[name]
+
+
+	def label(self) -> int:
+		self._label_num += 1
+		return self._label_num
 
 
 
@@ -103,7 +130,7 @@ class CodeGenerator(NodeVisitor):
 		
 
 	def visitLiteral(self, node: Node.Literal):
-		slot = self.state.get_slot()
+		slot = self.state.get_tmp_slot()
 
 		if slot is None:
 			raise ValueError()
@@ -111,20 +138,40 @@ class CodeGenerator(NodeVisitor):
 		self.state.current_procedure.instructions.append(
 			Instruction(InstrSet.loadi32, [slot, node.value])
 		)
-		out = Instruction(InstrSet.out, [2, slot])
-		self.state.current_procedure.instructions.append(out)
-		self.state.push_temp_slot(slot)
+		self.state.push_slot(slot)
 
 
 	def visitIdentifier(self, node: Node.Identifier):
-		pass
+		slot = self.state.get_variable_slot(node.name)
+		self.state.push_slot(slot)
 
 
 	def visitBlock(self, node: Node.Block):
-		pass
+
+		for stmt in node.statements:
+			self.visit(stmt)
+
 
 	def visitIf(self, node: Node.If):
-		pass
+
+		end_if_label = Label(self.state.label())
+		else_branch_label = Label(self.state.label())
+
+		self.visit(node.condition)
+		condition_slot = self.state.pop_slot()
+		self.state.free_slot_if_tmp(condition_slot)
+
+		self.state.current_procedure.instructions.append(
+			Instruction(InstrSet.jmpifn, [condition_slot, else_branch_label if node.else_branch else end_if_label])
+		)
+		self.visit(node.then_branch)
+		
+		if node.else_branch:
+			self.state.current_procedure.instructions.append(Instruction(InstrSet.jmp, [end_if_label]))
+			self.state.current_procedure.instructions.append(else_branch_label)
+			self.visit(node.else_branch)
+
+		self.state.current_procedure.instructions.append(end_if_label)
 
 
 	def visitWhile(self, node: Node.While):
@@ -136,8 +183,17 @@ class CodeGenerator(NodeVisitor):
 
 	def visitDeclaration(self, node: Node.Declaration):
 		self.visit(node.value)
-		slot = self.state.pop_temp_slot()
+		slot = self.state.get_slot()
 		self.state.set_variable_slot(node.name, slot)
+
+		value_slot = self.state.pop_slot()
+
+		self.state.current_procedure.instructions.append(
+			Instruction(InstrSet.mov, [slot, value_slot])
+		)
+
+		self.state.free_slot_if_tmp(value_slot)
+
 		out = Instruction(InstrSet.out, [2, slot])
 		self.state.current_procedure.instructions.append(out)
 
@@ -154,8 +210,8 @@ class CodeGenerator(NodeVisitor):
 		if slot is None:
 			raise ValueError()
 		
-		t2 = self.state.pop_temp_slot()
-		t1 = self.state.pop_temp_slot()
+		t2 = self.state.pop_slot()
+		t1 = self.state.pop_slot()
 
 		match node.op:
 			case BinaryOpType.Add:
@@ -171,10 +227,9 @@ class CodeGenerator(NodeVisitor):
 			Instruction(instr, [slot, t1, t2])
 		)
 
-		self.state.free_slot(t2)
-		self.state.free_slot(t1)
-
-		self.state.push_temp_slot(slot)
+		self.state.free_slot_if_tmp(t2)
+		self.state.free_slot_if_tmp(t1)
+		self.state.push_slot(slot)
 
 
 	def visitUnaryOp(self, node: Node.UnaryOp):

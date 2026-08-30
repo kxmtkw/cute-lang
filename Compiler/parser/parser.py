@@ -85,6 +85,12 @@ class Parser:
 		if self.expect_keyword(KeywordType.Let):
 			self.backtrack()
 			node = self.parse_decl()
+		elif self.expect_keyword(KeywordType.If):
+			self.backtrack()
+			node = self.parse_if()
+		elif self.expect_symbol(SymbolType.LBrace):
+			self.backtrack()
+			node = self.parse_block()
 		else:
 			node = self.parse_expression()
 
@@ -203,6 +209,17 @@ class Parser:
 		)
 
 
+	def parse_block(self) -> Node.Block:
+
+		self.expect_symbol(SymbolType.LBrace)
+
+		stmts = []
+		while self.expect_symbol(SymbolType.RBrace) is None:
+			stmts.append(self.parse_statement())
+
+		return Node.Block(stmts)
+	
+
 	def parse_decl(self) -> Node.Declaration:
 
 		self.expect_keyword(KeywordType.Let, True)
@@ -220,3 +237,19 @@ class Parser:
 			value = None
 
 		return Node.Declaration(name.value, decl_type, value)  # type: ignore
+
+
+	def parse_if(self) -> Node.Declaration:
+
+		self.expect_keyword(KeywordType.If, True)
+
+		condition = self.parse_expression()
+		
+		then_block = self.parse_statement()
+
+		if self.expect_keyword(KeywordType.Else) is not None:
+			else_stmt = self.parse_statement()	
+		else:
+			else_stmt = False
+
+		return Node.If(condition, then_block, else_stmt)  # type: ignore
