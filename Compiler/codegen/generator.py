@@ -21,6 +21,16 @@ INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
 	BinaryOpType.Shr: InstrSet.bshr,
 }
 
+OUT_FMT: dict[str, int] = {
+	"binary": 0,
+	"hex": 1,
+	"int": 2,
+	"uint": 3,
+	"float": 4,
+	"bool": 5,
+	"object": 6
+}
+
 class GeneratorState:
 
 
@@ -61,6 +71,21 @@ class GeneratorState:
 			if not slot:
 				self._proc_slots[i] = True
 				return i
+		return None
+
+
+	def get_continous_slots(self, count: int) -> list[int] | None:
+		found: bool = True
+		candidate: int = 0
+
+		for i, slot in enumerate(self._proc_slots):
+			if not slot:
+				if not found: candidate = i
+				if (i - candidate + 1) == count:
+					return list(range(candidate, i + 1))
+			else:
+				found = False
+
 		return None
 
 
@@ -245,8 +270,6 @@ class CodeGenerator(NodeVisitor):
 		if node.op == BinaryOpType.Assign:
 			mov = Instruction(InstrSet.mov, [t1, t2])
 			self.state.current_procedure.instructions.append(mov)
-			out = Instruction(InstrSet.out, [2, t1])
-			self.state.current_procedure.instructions.append(out)
 
 		elif node.op in INSTRUCTION_ENCODING_TABLE:
 			slot = self.state.get_tmp_slot()
@@ -265,4 +288,31 @@ class CodeGenerator(NodeVisitor):
 
 
 	def visitCall(self, node: Node.Call):
-		pass
+
+
+		if isinstance(node.callee, Node.Identifier):
+			if node.callee.name != "__builtin_out":
+				return
+
+			if len(node.args) != 2:
+				raise ValueError()
+
+			if not isinstance(node.args[0], Node.Identifier):
+				raise ValueError()
+
+			mode = OUT_FMT.get(node.args[0].name, 1)
+			self.visit(node.args[1])
+			slot = self.state.pop_slot()
+			self.state.free_slot_if_tmp(slot)
+
+			out = Instruction(InstrSet.out, [mode, slot])
+			self.state.current_procedure.instructions.append(out)
+
+		# slots = self.state.get_continous_slots(len(node.args))
+
+		# for i, arg in enumerate(node.args):
+		# 	self.visit(arg)
+		# 	expr_slot = self.state.pop_slot()
+		# 	mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
+
+		

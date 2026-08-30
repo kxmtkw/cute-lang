@@ -204,7 +204,9 @@ class Parser:
 
 		while self.expect_symbol(SymbolType.RParen) is None:
 			args.append(self.parse_expression())
-			self.expect_symbol(SymbolType.Comma, True)
+			if not self.expect_symbol(SymbolType.Comma):
+				self.expect_symbol(SymbolType.RParen, True)
+				break
 
 		return Node.Call(
 			callee,
