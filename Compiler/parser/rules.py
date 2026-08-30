@@ -38,8 +38,8 @@ UNARY_OP_MAPPING: dict[SymbolType, UnaryOpType] = {
 
 
 OPERATOR_BINDING_POWER: dict[Union[BinaryOpType, UnaryOpType], tuple[float, float]] = {
-	BinaryOpType.Assign: (-0.9, -1),
-	BinaryOpType.Or: (0, 0.1),
+	BinaryOpType.Assign: (0.2, 0.1),
+	BinaryOpType.Or: (0.8, 0.9),
 	BinaryOpType.And: (1, 1.1),
 	BinaryOpType.BitOr: (2, 2.1),
 	BinaryOpType.BitXor: (3, 3.1),

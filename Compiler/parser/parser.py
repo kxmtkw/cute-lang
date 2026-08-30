@@ -100,7 +100,7 @@ class Parser:
 		return node
 		
 
-	def parse_expression(self, prev_bp: float = -2) -> Node.Expression:
+	def parse_expression(self, prev_bp: float = 0) -> Node.Expression:
 
 		sym = self.expect_token_type(TokenType.Symbol)
 
@@ -108,7 +108,7 @@ class Parser:
 			lhs = self.parse_atom()
 
 		elif sym.value == SymbolType.LParen:
-			lhs = self.parse_expression(0)
+			lhs = self.parse_expression()
 			if self.expect_symbol(SymbolType.RParen) is None:
 				raise ValueError("Unterminated paran.")
 
