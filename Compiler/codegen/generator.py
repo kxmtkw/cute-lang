@@ -214,20 +214,20 @@ class CodeGenerator(NodeVisitor):
 
 
 	def visitDeclaration(self, node: Node.Declaration):
-		self.visit(node.value)
+
 		slot = self.state.get_slot()
 		self.state.set_variable_slot(node.name, slot)
+		
+		if node.value is not None:
+			self.visit(node.value)
+		
+			value_slot = self.state.pop_slot()
 
-		value_slot = self.state.pop_slot()
+			self.state.current_procedure.instructions.append(
+				Instruction(InstrSet.mov, [slot, value_slot])
+			)
+			self.state.free_slot_if_tmp(value_slot)
 
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.mov, [slot, value_slot])
-		)
-
-		self.state.free_slot_if_tmp(value_slot)
-
-		out = Instruction(InstrSet.out, [2, slot])
-		self.state.current_procedure.instructions.append(out)
 
 
 	def visitAssign(self, node: Node.Assign):
