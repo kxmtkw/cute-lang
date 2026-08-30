@@ -88,6 +88,9 @@ class Parser:
 		elif self.expect_keyword(KeywordType.If):
 			self.backtrack()
 			node = self.parse_if()
+		elif self.expect_keyword(KeywordType.While):
+			self.backtrack()
+			node = self.parse_while()
 		elif self.expect_symbol(SymbolType.LBrace):
 			self.backtrack()
 			node = self.parse_block()
@@ -190,7 +193,7 @@ class Parser:
 
 			return Node.Identifier(token.value) # type: ignore
 
-		raise ValueError(f"Expected atomic expression! Got {self.peek().type}")
+		raise ValueError(f"Expected atomic expression! Got {self.peek()}")
 
 
 	def parse_call(self, callee: Node.Expression) -> Node.Call:
@@ -253,3 +256,14 @@ class Parser:
 			else_stmt = False
 
 		return Node.If(condition, then_block, else_stmt)  # type: ignore
+
+
+	def parse_while(self) -> Node.While:
+
+		self.expect_keyword(KeywordType.While, True)
+
+		condition = self.parse_expression()
+		
+		block = self.parse_block()
+
+		return Node.While(condition, block)
