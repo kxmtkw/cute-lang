@@ -113,6 +113,13 @@ class Instruction(CompileableUnit):
 	opcode: InstrSet
 	arguments: list[int | float | "ReferenceUnit"]
 
+	def __repr__(self) -> str:
+		arguments = " ".join(
+			repr(argument) for argument in self.arguments
+		)
+		return f"{self.opcode.name} {arguments}".rstrip()
+
+
 	def assemble(self, builder: ImageBuilder):
 		instruction, arg_fmts = self.opcode.value
 		builder.add_to_instr_pool(Format.u8, instruction)
@@ -137,6 +144,9 @@ class Instruction(CompileableUnit):
 class Label(CompileableUnit, ReferenceUnit):
 	id: int
 
+	def __repr__(self) -> str:
+		return f"L{self.id}:"
+
 	def assemble(self, builder: ImageBuilder):
 		builder.mark_label(self.id)		
 
@@ -150,6 +160,9 @@ class Label(CompileableUnit, ReferenceUnit):
 class Constant(CompileableUnit, ReferenceUnit):
 	value: int | float | bytes
 	fmt: str
+
+	def __repr__(self) -> str:
+		return f"Constant {self.fmt} {self.value!r}"
 
 	def assemble(self, builder: ImageBuilder):
 		self._offset = builder.add_to_data_blob(self.fmt, self.value)
@@ -169,6 +182,11 @@ class Procedure(CompileableUnit):
 	argument_count: int
 	instructions: list[Instruction | Label]
 
+	def __repr__(self) -> str:
+		instructions = "\n".join(repr(instruction) for instruction in self.instructions)
+		header = f"-- Procedure {self.id} {self.argument_count}"
+		return f"{header}\n\n{instructions}"
+
 	def assemble(self, builder: ImageBuilder):
 		builder.clear_labels()
 		builder.new_proc(self.id, self.argument_count)
@@ -181,6 +199,11 @@ class Procedure(CompileableUnit):
 class Program(CompileableUnit):
 	constants: list[Constant]
 	procedures: list[Procedure]
+
+	def __repr__(self) -> str:
+		header = "- Program\n"
+		units = [*self.constants, *self.procedures]
+		return header + "\n".join(repr(unit) for unit in units)
 
 	def assemble(self, builder: ImageBuilder):
 
