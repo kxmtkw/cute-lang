@@ -5,8 +5,21 @@ from Compiler.codegen.program import Program, Procedure, Label, Constant, Instru
 
 SLOT_COUNT = 256
 
-# todoo tmp slot logic because right now (a+b) will free the slots of the variable a and b
 
+INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
+	BinaryOpType.Add: InstrSet.addi,
+	BinaryOpType.Sub: InstrSet.subi,
+	BinaryOpType.Mul: InstrSet.muli,
+	BinaryOpType.Div: InstrSet.divi,
+	BinaryOpType.Mod: InstrSet.modi,
+	BinaryOpType.And: InstrSet.and_,
+	BinaryOpType.Or: InstrSet.or_,
+	BinaryOpType.BitAnd: InstrSet.band,
+	BinaryOpType.BitOr: InstrSet.bor,
+	BinaryOpType.BitXor: InstrSet.bxor,
+	BinaryOpType.Shl: InstrSet.bshl,
+	BinaryOpType.Shr: InstrSet.bshr,
+}
 
 class GeneratorState:
 
@@ -112,6 +125,8 @@ class CodeGenerator(NodeVisitor):
 		with open("dev/test.cute", "wb") as file:
 			file.write(image)
 
+		print(self.program)
+
 
 	def visitFunction(self, node: Node.Function):
 		proc = Procedure(0, 0, [])
@@ -205,32 +220,28 @@ class CodeGenerator(NodeVisitor):
 	def visitBinaryOp(self, node: Node.BinaryOp):
 		self.visit(node.left)
 		self.visit(node.right)
-		slot = self.state.get_slot()
 
-		if slot is None:
-			raise ValueError()
 		
 		t2 = self.state.pop_slot()
 		t1 = self.state.pop_slot()
 
-		match node.op:
-			case BinaryOpType.Add:
-				instr = InstrSet.addi
-			case BinaryOpType.Sub:
-				instr = InstrSet.subi
-			case BinaryOpType.Mul:
-				instr = InstrSet.muli
-			case BinaryOpType.Div:
-				instr = InstrSet.divi
+		if node.op == BinaryOpType.Assign:
+			mov = Instruction(InstrSet.mov, [t1, t2])
+			self.state.current_procedure.instructions.append(mov)
+			out = Instruction(InstrSet.out, [2, t1])
+			self.state.current_procedure.instructions.append(out)
 
-		self.state.current_procedure.instructions.append(
-			Instruction(instr, [slot, t1, t2])
-		)
+		elif node.op in INSTRUCTION_ENCODING_TABLE:
+			slot = self.state.get_tmp_slot()
+			instr = INSTRUCTION_ENCODING_TABLE[node.op]
+			operation = Instruction(instr, [slot, t1, t2])
+			self.state.current_procedure.instructions.append(operation)
+			self.state.push_slot(slot)
+	
 
 		self.state.free_slot_if_tmp(t2)
 		self.state.free_slot_if_tmp(t1)
-		self.state.push_slot(slot)
-
+		
 
 	def visitUnaryOp(self, node: Node.UnaryOp):
 		pass
