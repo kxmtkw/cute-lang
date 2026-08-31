@@ -1,9 +1,9 @@
+from Compiler.codegen.state import GeneratorState
 from Compiler.parser.nodes import BinaryOpType, NodeVisitor, Node
 from Compiler.codegen.image import ImageBuilder
 from Compiler.codegen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
+from Compiler.codegen.builtin import BuiltinHandler
 
-
-SLOT_COUNT = 256
 
 
 INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
@@ -21,115 +21,6 @@ INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
 	BinaryOpType.Shr: InstrSet.bshr,
 }
 
-OUT_FMT: dict[str, int] = {
-	"binary": 0,
-	"hex": 1,
-	"int": 2,
-	"uint": 3,
-	"float": 4,
-	"bool": 5,
-	"object": 6
-}
-
-class GeneratorState:
-
-
-	def __init__(self) -> None:
-		self._current_procedure: Procedure | None = None
-		self._proc_slots: list[bool] = []
-		self._tmp_slots: set[int] = set()
-		self._slots_stack: list[int] = []
-		self._variable_assignments: dict[str, int] = {} # variable name to slot
-		self._label_num: int = 0
-
-
-	def new_procedure(self, proc: Procedure):
-		if self._current_procedure is not None:
-			raise ValueError()
-		self._current_procedure = proc
-		self._proc_slots = [False for slot in range(SLOT_COUNT)]
-		self._tmp_slots: set[int] = set()
-		self._slots_stack.clear()
-		self._variable_assignments.clear()
-
-
-	def end_procedure(self):
-		if self._current_procedure is None:
-			raise ValueError()
-		self._current_procedure = None
-
-
-	@property
-	def current_procedure(self) -> Procedure:
-		if self._current_procedure is None:
-			raise ValueError("current_procedure not assigned yet.")
-		return self._current_procedure
-
-
-	def get_slot(self) -> int | None:
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				self._proc_slots[i] = True
-				return i
-		return None
-
-
-	def get_continous_slots(self, count: int) -> list[int] | None:
-		found: bool = True
-		candidate: int = 0
-
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				if not found: candidate = i
-				if (i - candidate + 1) == count:
-					return list(range(candidate, i + 1))
-			else:
-				found = False
-
-		return None
-
-
-	def get_tmp_slot(self) -> int | None:
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				self._proc_slots[i] = True
-				self._tmp_slots.add(i)
-				return i
-		return None
-	
-
-	def free_slot(self, slot: int):
-		self._proc_slots[slot] = False
-		if slot in self._tmp_slots: self._tmp_slots.remove(slot)
-
-
-	def free_slot_if_tmp(self, slot: int):
-		if slot in self._tmp_slots:
-			self._proc_slots[slot] = False
-			self._tmp_slots.remove(slot)
-
-
-	def push_slot(self, slot: int):
-		self._slots_stack.append(slot)
-
-
-	def pop_slot(self) -> int:
-		return self._slots_stack.pop()
-
-
-	def set_variable_slot(self, name: str, slot: int):
-		self._variable_assignments[name] = slot
-
-
-	def get_variable_slot(self, name: str) -> int:
-		return self._variable_assignments[name]
-
-
-	def label(self) -> int:
-		self._label_num += 1
-		return self._label_num
-
-
 
 
 class CodeGenerator(NodeVisitor):
@@ -139,6 +30,7 @@ class CodeGenerator(NodeVisitor):
 		self.state = GeneratorState()
 		self.builder = ImageBuilder()
 		self.program = Program([], [])
+		self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
 	
 	def visitProgram(self, node: Node.Program):
@@ -161,8 +53,6 @@ class CodeGenerator(NodeVisitor):
 		for stmt in node.body:
 			self.visit(stmt)
 
-
-		self.state.current_procedure.instructions.append(Instruction(InstrSet.halt, [0]))
 		self.program.procedures.append(proc)
 
 		self.state.end_procedure()
@@ -291,22 +181,9 @@ class CodeGenerator(NodeVisitor):
 
 
 		if isinstance(node.callee, Node.Identifier):
-			if node.callee.name != "__builtin_out":
+			if node.callee.name == "__builtin__":
+				self.builtin.handle(node)
 				return
-
-			if len(node.args) != 2:
-				raise ValueError()
-
-			if not isinstance(node.args[0], Node.Identifier):
-				raise ValueError()
-
-			mode = OUT_FMT.get(node.args[0].name, 1)
-			self.visit(node.args[1])
-			slot = self.state.pop_slot()
-			self.state.free_slot_if_tmp(slot)
-
-			out = Instruction(InstrSet.out, [mode, slot])
-			self.state.current_procedure.instructions.append(out)
 
 		# slots = self.state.get_continous_slots(len(node.args))
 
