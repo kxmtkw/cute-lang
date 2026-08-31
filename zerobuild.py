@@ -1,7 +1,6 @@
 from zero import *
 
 C_STANDARD = Flags.gcc.std_c17
-CPP_STANDARD = Flags.gcc.std_cpp20
 
 # Options
 
