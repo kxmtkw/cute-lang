@@ -113,6 +113,14 @@ class Instruction(CompileableUnit):
 	opcode: InstrSet
 	arguments: list[int | float | "ReferenceUnit"]
 
+	def __post_init__(self) -> None:
+		expected_argument_count = len(self.opcode.value[1])
+		if len(self.arguments) != expected_argument_count:
+			raise ValueError(
+				f"Instruction {self.opcode.name} requires {expected_argument_count} arguments; "
+				f"got {len(self.arguments)}."
+			)
+
 	def __repr__(self) -> str:
 		arguments = " ".join(
 			repr(argument) for argument in self.arguments
@@ -123,9 +131,6 @@ class Instruction(CompileableUnit):
 	def assemble(self, builder: ImageBuilder):
 		instruction, arg_fmts = self.opcode.value
 		builder.add_to_instr_pool(Format.u8, instruction)
-
-		if len(self.arguments) != len(arg_fmts):
-			raise ValueError()
 		
 		for i in range(len(arg_fmts)):
 			arg = self.arguments[i]

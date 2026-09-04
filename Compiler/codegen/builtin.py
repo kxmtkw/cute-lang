@@ -2,6 +2,7 @@ from Compiler.codegen.state import GeneratorState
 from Compiler.parser.nodes import BinaryOpType, NodeVisitor, Node
 from Compiler.codegen.image import ImageBuilder
 from Compiler.codegen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
+from Compiler.codegen.image import Format
 
 
 OUT_FMT: dict[str, int] = {
@@ -25,7 +26,7 @@ class BuiltinHandler:
 
 		self.handler_dispatch = {
 			"out": self.builtin_out,
-			"halt": self.builtin_halt
+			"instr": self.builtin_instr,
 		}
 
 		self.current_handler_arguments = []
@@ -68,14 +69,48 @@ class BuiltinHandler:
 		self.state.current_procedure.instructions.append(out)
 
 
-	def builtin_halt(self):
+	def builtin_instr(self):
 
-		if len(self.current_handler_arguments) != 1:
-			raise ValueError(f"__builtin__ halt requires 1 argument.")
+		if not self.current_handler_arguments:
+			raise ValueError("__builtin__ instr requires an instruction name.")
 
-		slot = self.current_handler_arguments[0]
+		instruction_name = self.current_handler_arguments[0]
+		if not isinstance(instruction_name, Node.Identifier):
+			raise ValueError("Expected an instruction name for __builtin__ instr.")
 
-		slot_num = self.state.get_variable_slot(slot.name)
+		instruction = InstrSet.__members__.get(instruction_name.name)
+		if instruction is None:
+			raise ValueError(f"Unknown instruction for __builtin__ instr: {instruction_name.name}")
 
-		halt = Instruction(InstrSet.halt, [slot_num])
-		self.state.current_procedure.instructions.append(halt)
+		arguments = self.current_handler_arguments[1:]
+		_, argument_formats = instruction.value
+		expected_argument_count = len(argument_formats)
+		if len(arguments) != expected_argument_count:
+			raise ValueError(
+				f"__builtin__ instr {instruction.name} requires {expected_argument_count} arguments; "
+				f"got {len(arguments)}."
+			)
+
+		encoded_arguments = [
+			self._encode_instruction_argument(argument, argument_formats[index], index + 1)
+			for index, argument in enumerate(arguments)
+		]
+		self.state.current_procedure.instructions.append(Instruction(instruction, encoded_arguments))
+
+
+	def _encode_instruction_argument(self, argument: Node.Expression, fmt: str, position: int):
+		if isinstance(argument, Node.Identifier):
+			if fmt != Format.u8:
+				raise ValueError(
+					f"Argument {position} of __builtin__ instr must be a literal for format {fmt}."
+				)
+
+			slot = self.state.get_variable_slot(argument.name)
+			if slot is None:
+				raise ValueError(f"Unknown variable for __builtin__ instr: {argument.name}")
+			return slot
+
+		if isinstance(argument, Node.Literal):
+			return argument.value
+
+		raise ValueError(f"Argument {position} of __builtin__ instr must be an identifier or literal.")
