@@ -66,10 +66,22 @@ class CodeGenerator(NodeVisitor):
 
 		if slot is None:
 			raise ValueError()
-		
+
+		match node.type:
+			case "int":
+				instr = InstrSet.loadi32
+			case "float":
+				instr = InstrSet.loadf32
+			case "bool":
+				instr = InstrSet.loadbyte
+				node.value = 1 if node.value else 0
+			case "string":
+				raise ValueError("String literals are not supported yet.")
+
 		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.loadi32, [slot, node.value])
+			Instruction(instr, [slot, node.value])
 		)
+		
 		self.state.push_slot(slot)
 
 

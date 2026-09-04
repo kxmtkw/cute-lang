@@ -193,7 +193,8 @@ class Parser:
 			TokenType.String
 		]:
 			self.advance()
-			return Node.Literal(token.value) # type: ignore
+			literal_type = "int" if token.type in [TokenType.Int, TokenType.Hex, TokenType.Bin] else "float" if token.type == TokenType.Float else "bool" if token.type == TokenType.Bool else "string"
+			return Node.Literal(token.value, literal_type)
 
 		if token.type == TokenType.Word:
 

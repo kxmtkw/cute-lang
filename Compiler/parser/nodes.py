@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 from abc import ABC, abstractmethod
 
 
@@ -95,6 +95,7 @@ class Node:
 	@dataclass
 	class Literal(Expression):
 		value: Union[int, float, str, bool]
+		type: Literal["int", "float", "string", "bool"]
 
 
 	@dataclass
