@@ -134,12 +134,6 @@ class Node:
 		type: str
 		value: "Node.Expression"
 
-		
-	@dataclass
-	class Assign(Expression):
-		name: str
-		value: "Node.Expression"
-
 
 	@dataclass
 	class BinaryOp(Expression):
@@ -219,11 +213,6 @@ class NodeVisitor(ABC):
 
 	@abstractmethod
 	def visitDeclaration(self, node: Node.Declaration):
-		pass
-
-
-	@abstractmethod
-	def visitAssign(self, node: Node.Assign):
 		pass
 
 

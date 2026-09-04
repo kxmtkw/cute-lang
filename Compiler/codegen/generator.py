@@ -168,11 +168,6 @@ class CodeGenerator(NodeVisitor):
 			self.state.free_slot_if_tmp(value_slot)
 
 
-
-	def visitAssign(self, node: Node.Assign):
-		pass
-
-
 	def visitBinaryOp(self, node: Node.BinaryOp):
 		self.visit(node.left)
 		self.visit(node.right)
