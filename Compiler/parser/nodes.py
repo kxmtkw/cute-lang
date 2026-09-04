@@ -83,8 +83,8 @@ class Node:
 	@dataclass
 	class Function(Base):
 		name: str
-		params: List[str]
-		body: List["Node.Base"]
+		params: List["Node.Declaration"]
+		body: "Node.Block"
 		return_type: Optional[str] = None
 
 
@@ -158,6 +158,10 @@ class Node:
 	class Call(Expression):
 		callee: "Node.Expression" 
 		args: List["Node.Expression"]
+
+	@dataclass
+	class Return(Expression):
+		value: Optional["Node.Expression"] = None
 
 
 
@@ -235,4 +239,9 @@ class NodeVisitor(ABC):
 
 	@abstractmethod
 	def visitCall(self, node: Node.Call):
+		pass
+
+
+	@abstractmethod
+	def visitReturn(self, node: Node.Return):
 		pass

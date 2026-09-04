@@ -3,104 +3,118 @@ from Compiler.codegen.program import Procedure
 
 SLOT_COUNT = 256
 
+class ProcedureState:
+
+	def __init__(self, proc: Procedure) -> None:
+		self.proc: Procedure = proc
+		self.slots: list[bool] = [False for _ in range(SLOT_COUNT)]
+		self.tmp_slots: set[int] = set()
+		self.slots_stack: list[int] = []
+		self.variable_assignments: dict[str, int] = {}
+
+
 class GeneratorState:
 
-
 	def __init__(self) -> None:
-		self._current_procedure: Procedure | None = None
-		self._proc_slots: list[bool] = []
-		self._tmp_slots: set[int] = set()
-		self._slots_stack: list[int] = []
-		self._variable_assignments: dict[str, int] = {} # variable name to slot
+		self._proc_stack: list[ProcedureState] = []
 		self._label_num: int = 0
+		self._procedure_id_table: dict[str, int] = {}
 
 
-	def new_procedure(self, proc: Procedure):
-		if self._current_procedure is not None:
-			raise ValueError()
-		self._current_procedure = proc
-		self._proc_slots = [False for slot in range(SLOT_COUNT)]
-		self._tmp_slots: set[int] = set()
-		self._slots_stack.clear()
-		self._variable_assignments.clear()
+	def get_procedure_id(self, name: str) -> int:
+		if name == "main":
+			return 0
+		if name not in self._procedure_id_table:
+			self._procedure_id_table[name] = len(self._procedure_id_table) + 1
+		return self._procedure_id_table[name]
 
 
-	def end_procedure(self):
-		if self._current_procedure is None:
-			raise ValueError()
-		self._current_procedure = None
+	def new_procedure(self, proc: Procedure) -> None:
+		self._proc_stack.append(ProcedureState(proc))
+
+
+	def end_procedure(self) -> None:
+		if not self._proc_stack:
+			raise ValueError("No procedure to end.")
+		self._proc_stack.pop()
+
+
+	@property
+	def current_state(self) -> ProcedureState:
+		if not self._proc_stack:
+			raise ValueError("No active procedure state.")
+		return self._proc_stack[-1]
 
 
 	@property
 	def current_procedure(self) -> Procedure:
-		if self._current_procedure is None:
-			raise ValueError("current_procedure not assigned yet.")
-		return self._current_procedure
+		return self.current_state.proc
 
 
 	def get_slot(self) -> int | None:
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				self._proc_slots[i] = True
+		state = self.current_state
+		for i, occupied in enumerate(state.slots):
+			if not occupied:
+				state.slots[i] = True
 				return i
 		return None
 
 
 	def get_continous_slots(self, count: int) -> list[int] | None:
-		found: bool = True
+		state = self.current_state
+		found: bool = False
 		candidate: int = 0
 
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				if not found: candidate = i
-				if (i - candidate + 1) == count:
-					return list(range(candidate, i + 1))
-			else:
+		for i, occupied in enumerate(state.slots):
+			if occupied:
 				found = False
+				continue
 
-		return None
+			if not found:
+				candidate = i
+				found = True
 
+			if (i - candidate + 1) == count:
+				slots = list(range(candidate, i + 1))
+				for s in slots:
+					state.slots[s] = True
+				return slots
 
-	def get_tmp_slot(self) -> int | None:
-		for i, slot in enumerate(self._proc_slots):
-			if not slot:
-				self._proc_slots[i] = True
-				self._tmp_slots.add(i)
-				return i
 		return None
 	
 
-	def free_slot(self, slot: int):
-		self._proc_slots[slot] = False
-		if slot in self._tmp_slots: self._tmp_slots.remove(slot)
+	def get_tmp_slot(self) -> int | None:
+		slot = self.get_slot()
+		if slot is not None:
+			self.current_state.tmp_slots.add(slot)
+		return slot
 
+	def free_slot(self, slot: int) -> None:
+		state = self.current_state
+		state.slots[slot] = False
+		state.tmp_slots.discard(slot)
 
-	def free_slot_if_tmp(self, slot: int):
-		if slot in self._tmp_slots:
-			self._proc_slots[slot] = False
-			self._tmp_slots.remove(slot)
+	def free_slot_if_tmp(self, slot: int) -> None:
+		state = self.current_state
+		if slot in state.tmp_slots:
+			state.slots[slot] = False
+			state.tmp_slots.remove(slot)
 
-
-	def push_slot(self, slot: int):
-		self._slots_stack.append(slot)
-
+	def push_slot(self, slot: int) -> None:
+		self.current_state.slots_stack.append(slot)
 
 	def pop_slot(self) -> int:
-		return self._slots_stack.pop()
+		return self.current_state.slots_stack.pop()
 
+	def set_variable_slot(self, name: str, slot: int) -> None:
+		self.current_state.variable_assignments[name] = slot
 
-	def set_variable_slot(self, name: str, slot: int):
-		self._variable_assignments[name] = slot
-
-
-	def get_variable_slot(self, name: str) -> int:
-		return self._variable_assignments[name]
-
+	def get_variable_slot(self, name: str) -> int | None:
+		return self.current_state.variable_assignments.get(name)
 
 	def label(self) -> int:
 		self._label_num += 1
 		return self._label_num
-
 
 
 

@@ -63,6 +63,7 @@ class SymbolType(Enum):
 	Comma = ","
 	Dot = "."
 	Hashtag = "#"
+	Arrow = "->"
 
 
 KEYWORD_MAP = {k.value: k for k in KeywordType}

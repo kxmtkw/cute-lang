@@ -46,12 +46,14 @@ class CodeGenerator(NodeVisitor):
 
 
 	def visitFunction(self, node: Node.Function):
-		proc = Procedure(0, 0, [])
+		proc = Procedure(self.state.get_procedure_id(node.name), len(node.params), [])
 
 		self.state.new_procedure(proc)
 
-		for stmt in node.body:
-			self.visit(stmt)
+		for param in node.params:
+			self.visit(param)
+
+		self.visit(node.body)
 
 		self.program.procedures.append(proc)
 
@@ -73,6 +75,12 @@ class CodeGenerator(NodeVisitor):
 
 	def visitIdentifier(self, node: Node.Identifier):
 		slot = self.state.get_variable_slot(node.name)
+		if slot is None:
+			slot = self.state.get_tmp_slot()
+			id = self.state.get_procedure_id(node.name)
+			self.state.current_procedure.instructions.append(
+				Instruction(InstrSet.loadu32, [slot, id])
+			)
 		self.state.push_slot(slot)
 
 
@@ -132,7 +140,7 @@ class CodeGenerator(NodeVisitor):
 
 		slot = self.state.get_slot()
 		self.state.set_variable_slot(node.name, slot)
-		
+
 		if node.value is not None:
 			self.visit(node.value)
 		
@@ -177,6 +185,20 @@ class CodeGenerator(NodeVisitor):
 		pass
 
 
+	def visitReturn(self, node: Node.Return):
+		if node.value is not None:
+			self.visit(node.value)
+			slot = self.state.pop_slot()
+			self.state.free_slot_if_tmp(slot)
+			self.state.current_procedure.instructions.append(
+				Instruction(InstrSet.retval, [slot])
+			)
+		else:
+			self.state.current_procedure.instructions.append(
+				Instruction(InstrSet.ret, [])
+			)
+
+
 	def visitCall(self, node: Node.Call):
 
 
@@ -185,11 +207,27 @@ class CodeGenerator(NodeVisitor):
 				self.builtin.handle(node)
 				return
 
-		# slots = self.state.get_continous_slots(len(node.args))
+		slots = self.state.get_continous_slots(len(node.args))
 
-		# for i, arg in enumerate(node.args):
-		# 	self.visit(arg)
-		# 	expr_slot = self.state.pop_slot()
-		# 	mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
+		for i, arg in enumerate(node.args):
+			self.visit(arg)
+			expr_slot = self.state.pop_slot()
+			mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
+			self.state.current_procedure.instructions.append(mov)
+			self.state.free_slot_if_tmp(expr_slot)
+
+		self.visit(node.callee)
+		callee_slot = self.state.pop_slot()
+		return_slot = self.state.get_tmp_slot()
+		arg_start_slot = slots[0]
+
+		self.state.current_procedure.instructions.append(
+			Instruction(InstrSet.call, [callee_slot, arg_start_slot, return_slot])
+		)
+
+		self.state.push_slot(return_slot)
+		self.state.free_slot_if_tmp(callee_slot)
+		for slot in slots:
+				self.state.free_slot_if_tmp(slot)
 
 		

@@ -22,6 +22,7 @@ class Parser:
 
 	def advance(self, steps: int = 1) -> Token:
 		tok = self.peek()
+		print(tok)
 		self.pos += steps
 		return tok
 
@@ -35,7 +36,7 @@ class Parser:
 			return self.advance()
 
 		if panic:
-			print(f"Expected {type.name}, got {self.peek().type}")
+			print(f"Expected {type.name}, got {self.peek()}")
 			exit(1)
 
 
@@ -44,7 +45,7 @@ class Parser:
 			return self.advance()
 
 		if panic:
-			print(f"Expected {kw.value}, got {self.peek().value}")
+			print(f"Expected {kw.value}, got {self.peek()}")
 			exit(1)
 
 
@@ -56,32 +57,34 @@ class Parser:
 			print(f"Expected {sym.value}, got {self.peek().value}")
 			exit(1)
 
-	
+
+	def eat_stmt_enders(self):
+		while self.peek().type == TokenType.EOL or self.expect_symbol(SymbolType.Semicolon):
+			self.advance()
+
+
 	def parse(self):
+
 		nodes = []
 
 		while self.peek().type != TokenType.EOF:
-			stmt = self.parse_statement()
-			if stmt: nodes.append(stmt)
+			self.eat_stmt_enders()
 
-		main = Node.Function(
-			"main",
-			[],
-			nodes
-		)
+			if self.expect_keyword(KeywordType.Func):
+				self.backtrack()
+				func = self.parse_func()
+				nodes.append(func)
+				continue
 
-		program = Node.Program(
-			[main]
-		)
+		program = Node.Program(nodes)
 
 		return program
 
 
 	def parse_statement(self) -> Node.Expression:
 
-		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
-			continue
-		
+		self.eat_stmt_enders()
+
 		if self.expect_keyword(KeywordType.Let):
 			self.backtrack()
 			node = self.parse_decl()
@@ -91,14 +94,16 @@ class Parser:
 		elif self.expect_keyword(KeywordType.While):
 			self.backtrack()
 			node = self.parse_while()
+		elif self.expect_keyword(KeywordType.Return):
+			self.backtrack()
+			node = self.parse_return()
 		elif self.expect_symbol(SymbolType.LBrace):
 			self.backtrack()
 			node = self.parse_block()
 		else:
 			node = self.parse_expression()
 
-		while self.expect_token_type(TokenType.EOL) or self.expect_symbol(SymbolType.Semicolon):
-			continue
+		self.eat_stmt_enders()
 
 		return node
 		
@@ -225,15 +230,17 @@ class Parser:
 		return Node.Block(stmts)
 	
 
-	def parse_decl(self) -> Node.Declaration:
+	def parse_decl(self, *, type_must_be_specified: bool = False) -> Node.Declaration:
 
-		self.expect_keyword(KeywordType.Let, True)
+		self.expect_keyword(KeywordType.Let, False)
 
 		name = self.expect_token_type(TokenType.Word, True)
 
 		if self.expect_symbol(SymbolType.Colon):
 			decl_type = self.expect_token_type(TokenType.Word, True).value # type: ignore
 		else:
+			if type_must_be_specified:
+				raise ValueError("Type must be specified for this declaration.")
 			decl_type = None
 
 		if self.expect_symbol(SymbolType.Assign):
@@ -269,3 +276,46 @@ class Parser:
 		block = self.parse_block()
 
 		return Node.While(condition, block)
+
+
+
+	def parse_return(self) -> Node.Return:
+
+		self.expect_keyword(KeywordType.Return, True)
+
+		if self.expect_symbol(SymbolType.Semicolon) or self.peek().type == TokenType.EOL:
+			return Node.Return()
+
+		value = self.parse_expression()
+
+		return Node.Return(value)
+
+	
+	def parse_func(self) -> Node.Function:
+
+		self.expect_keyword(KeywordType.Func, True)
+		name = self.expect_token_type(TokenType.Word, True)
+
+		self.expect_symbol(SymbolType.LParen, True)
+
+		params = []
+
+		while True:
+			if self.expect_symbol(SymbolType.RParen):
+				break
+			params.append(self.parse_decl(type_must_be_specified=True))
+			self.expect_symbol(SymbolType.Comma, False)
+
+
+		if self.expect_symbol(SymbolType.Arrow):
+			return_type = self.expect_token_type(TokenType.Word, True)
+			return_type = return_type.value if return_type is not None else None
+		else:
+			return_type = None
+
+		self.eat_stmt_enders()
+
+		body = self.parse_block()
+
+		return Node.Function(name.value, params, body, return_type)
+
