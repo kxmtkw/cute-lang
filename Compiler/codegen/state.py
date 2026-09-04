@@ -16,7 +16,7 @@ class ProcedureState:
 class GeneratorState:
 
 	def __init__(self) -> None:
-		self._proc_stack: list[ProcedureState] = []
+		self._proc_state: ProcedureState | None = None
 		self._label_num: int = 0
 		self._procedure_id_table: dict[str, int] = {}
 
@@ -30,21 +30,19 @@ class GeneratorState:
 
 
 	def new_procedure(self, proc: Procedure) -> None:
-		self._proc_stack.append(ProcedureState(proc))
+		self._proc_state = ProcedureState(proc)
 
 
 	def end_procedure(self) -> None:
-		if not self._proc_stack:
-			raise ValueError("No procedure to end.")
-		self._proc_stack.pop()
+		self._proc_state = None
 
 
 	@property
 	def current_state(self) -> ProcedureState:
-		if not self._proc_stack:
+		if self._proc_state is None:
 			raise ValueError("No active procedure state.")
-		return self._proc_stack[-1]
-
+		return self._proc_state
+	
 
 	@property
 	def current_procedure(self) -> Procedure:
@@ -89,10 +87,12 @@ class GeneratorState:
 			self.current_state.tmp_slots.add(slot)
 		return slot
 
+
 	def free_slot(self, slot: int) -> None:
 		state = self.current_state
 		state.slots[slot] = False
 		state.tmp_slots.discard(slot)
+
 
 	def free_slot_if_tmp(self, slot: int) -> None:
 		state = self.current_state
@@ -100,17 +100,22 @@ class GeneratorState:
 			state.slots[slot] = False
 			state.tmp_slots.remove(slot)
 
+
 	def push_slot(self, slot: int) -> None:
 		self.current_state.slots_stack.append(slot)
+
 
 	def pop_slot(self) -> int:
 		return self.current_state.slots_stack.pop()
 
+
 	def set_variable_slot(self, name: str, slot: int) -> None:
 		self.current_state.variable_assignments[name] = slot
 
+
 	def get_variable_slot(self, name: str) -> int | None:
 		return self.current_state.variable_assignments.get(name)
+
 
 	def label(self) -> int:
 		self._label_num += 1
