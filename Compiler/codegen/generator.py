@@ -133,7 +133,23 @@ class CodeGenerator(NodeVisitor):
 		
 
 	def visitFor(self, node: Node.For):
-		pass
+
+		loop_start = Label(self.state.label())
+		loop_end = Label(self.state.label())
+		self.visit(node.init)
+		self.state.current_procedure.instructions.append(loop_start)
+		self.visit(node.condition)
+		t1 = self.state.pop_slot()
+		self.state.free_slot_if_tmp(t1)
+		self.state.current_procedure.instructions.append(
+			Instruction(InstrSet.jmpifn, [t1, loop_end])
+		)
+		self.visit(node.body)
+		self.visit(node.step)
+		self.state.current_procedure.instructions.append(
+			Instruction(InstrSet.jmp, [loop_start])
+		)
+		self.state.current_procedure.instructions.append(loop_end)
 
 
 	def visitDeclaration(self, node: Node.Declaration):

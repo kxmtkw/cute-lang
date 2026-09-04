@@ -124,7 +124,7 @@ class Node:
 	class For(Expression):
 		init: "Node.Expression"
 		condition: "Node.Expression"
-		end: "Node.Expression"
+		step: "Node.Expression"
 		body: "Node.Block"
 
 

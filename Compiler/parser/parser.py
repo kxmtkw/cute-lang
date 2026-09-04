@@ -94,6 +94,9 @@ class Parser:
 		elif self.expect_keyword(KeywordType.While):
 			self.backtrack()
 			node = self.parse_while()
+		elif self.expect_keyword(KeywordType.For):
+			self.backtrack()
+			node = self.parse_for()
 		elif self.expect_keyword(KeywordType.Return):
 			self.backtrack()
 			node = self.parse_return()
@@ -277,6 +280,20 @@ class Parser:
 
 		return Node.While(condition, block)
 
+
+	def parse_for(self) -> Node.For:
+	
+		self.expect_keyword(KeywordType.For, True)
+
+		init = self.parse_statement()
+		self.expect_symbol(SymbolType.Comma, True)
+		condition = self.parse_expression()
+		self.expect_symbol(SymbolType.Comma, True)
+		step = self.parse_expression()
+		
+		block = self.parse_block()
+
+		return Node.For(init, condition, step, block)
 
 
 	def parse_return(self) -> Node.Return:
