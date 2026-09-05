@@ -1,22 +1,6 @@
 from enum import Enum, auto
 from typing import Union, List, Optional
 
-
-class TokenType(Enum):
-	Int = auto()
-	Hex = auto()
-	Bin = auto()
-	Float = auto()
-	Bool = auto()
-	Word = auto()
-	String = auto()
-	Char = auto()
-	Symbol = auto()
-	Keyword = auto()
-	EOL = auto()
-	EOF = auto()
-
-
 class KeywordType(Enum):
 	Func = "func"
 	Return = "return"
@@ -69,8 +53,23 @@ class SymbolType(Enum):
 KEYWORD_MAP = {k.value: k for k in KeywordType}
 SYMBOL_MAP = {s.value: s for s in SymbolType}
 
-TokenValue = Union[int, float, bool, str, SymbolType, KeywordType, None]
 
+class TokenType(Enum):
+	Int = auto()
+	Hex = auto()
+	Bin = auto()
+	Float = auto()
+	Bool = auto()
+	Word = auto()
+	String = auto()
+	Char = auto()
+	Symbol = auto()
+	Keyword = auto()
+	EOL = auto()
+	EOF = auto()
+
+
+TokenValue = Union[int, float, bool, str, SymbolType, KeywordType, None]
 
 class Token:
 	

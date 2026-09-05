@@ -1,5 +1,5 @@
 from Compiler.codegen.state import GeneratorState
-from Compiler.parser.nodes import BinaryOpType, NodeVisitor, Node
+from Compiler.defs.nodes import NodeVisitor, Node
 from Compiler.codegen.image import ImageBuilder
 from Compiler.codegen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
 from Compiler.codegen.image import Format
@@ -41,12 +41,12 @@ class BuiltinHandler:
 		if not isinstance(handler, Node.Identifier):
 			raise ValueError("__builtin__ handler can only be a word.")
 
-		if handler.name not in self.handler_dispatch:
-			raise ValueError(f"Unknown __builtin__ handler: {handler.name}")
+		if handler.value not in self.handler_dispatch:
+			raise ValueError(f"Unknown __builtin__ handler: {handler.value}")
 
 		self.current_handler_arguments = builtin_call.args[1:] if len(builtin_call.args) >= 2 else []
 
-		self.handler_dispatch[handler.name]()
+		self.handler_dispatch[handler.value]()
 
 
 	def builtin_out(self):
@@ -58,12 +58,15 @@ class BuiltinHandler:
 		slot = self.current_handler_arguments[1]
 
 		if isinstance(fmt, Node.Identifier):
-			fmt_code = OUT_FMT.get(fmt.name, OUT_FMT["hex"])
+			fmt_code = OUT_FMT.get(fmt.value, OUT_FMT["hex"])
 		else:
 			raise ValueError("Expected a fmt code for arg 1 of __builtin__ out.")
 
+		if isinstance(slot, Node.Identifier):
+			slot_num = self.state.get_variable_slot(slot.value)
+		else:
+			raise ValueError("Expected an identifier for arg 2 of __builtin__ out.")
 
-		slot_num = self.state.get_variable_slot(slot.name)
 
 		out = Instruction(InstrSet.out, [fmt_code, slot_num])
 		self.state.current_procedure.instructions.append(out)
@@ -78,9 +81,9 @@ class BuiltinHandler:
 		if not isinstance(instruction_name, Node.Identifier):
 			raise ValueError("Expected an instruction name for __builtin__ instr.")
 
-		instruction = InstrSet.__members__.get(instruction_name.name)
+		instruction = InstrSet.__members__.get(instruction_name.value)
 		if instruction is None:
-			raise ValueError(f"Unknown instruction for __builtin__ instr: {instruction_name.name}")
+			raise ValueError(f"Unknown instruction for __builtin__ instr: {instruction_name.value}")
 
 		arguments = self.current_handler_arguments[1:]
 		_, argument_formats = instruction.value
@@ -105,9 +108,9 @@ class BuiltinHandler:
 					f"Argument {position} of __builtin__ instr must be a literal for format {fmt}."
 				)
 
-			slot = self.state.get_variable_slot(argument.name)
+			slot = self.state.get_variable_slot(argument.value)
 			if slot is None:
-				raise ValueError(f"Unknown variable for __builtin__ instr: {argument.name}")
+				raise ValueError(f"Unknown variable for __builtin__ instr: {argument.value}")
 			return slot
 
 		if isinstance(argument, Node.Literal):

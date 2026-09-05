@@ -1,8 +1,7 @@
 from typing import Union
 
-from Compiler.lexer.tokens import SymbolType, TokenType
-from Compiler.parser.nodes import BinaryOpType, UnaryOpType
-
+from Compiler.lexer.defs import SymbolType, TokenType
+from Compiler.defs.op import BinaryOpType, UnaryOpType
 
 
 BINARY_OPERATOR_MAPPING: dict[SymbolType, BinaryOpType] = {

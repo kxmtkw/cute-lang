@@ -1,6 +1,7 @@
-from Compiler.lexer.tokens import KeywordType, SymbolType, Token, TokenType
+from Compiler.defs.expr import ExprLiteralType
+from Compiler.lexer.defs import KeywordType, SymbolType, Token, TokenType
 
-from Compiler.parser.nodes import Node
+from Compiler.defs.nodes import Node
 import Compiler.parser.rules as r
 
 
@@ -193,13 +194,25 @@ class Parser:
 			TokenType.String
 		]:
 			self.advance()
-			literal_type = "int" if token.type in [TokenType.Int, TokenType.Hex, TokenType.Bin] else "float" if token.type == TokenType.Float else "bool" if token.type == TokenType.Bool else "string"
-			return Node.Literal(token.value, literal_type)
+			match token.type:
+				case TokenType.Int | TokenType.Hex | TokenType.Bin:
+					literal_type = ExprLiteralType.Int
+				case TokenType.Float:
+					literal_type = ExprLiteralType.Float
+				case TokenType.Bool:
+					literal_type = ExprLiteralType.Bool
+				case TokenType.Char:
+					literal_type = ExprLiteralType.Char
+				case TokenType.String:
+					literal_type = ExprLiteralType.String
+				case _:
+					raise ValueError("Unknown literal type.")
+
+			return Node.Literal(token.value, literal_type) # type: ignore , the above ensures that the value is of the correct type for the literal type
+
 
 		if token.type == TokenType.Word:
-
 			self.advance()
-
 			return Node.Identifier(token.value) # type: ignore
 
 		raise ValueError(f"Expected atomic expression! Got {self.peek()}")
@@ -255,20 +268,20 @@ class Parser:
 		return Node.Declaration(name.value, decl_type, value)  # type: ignore
 
 
-	def parse_if(self) -> Node.Declaration:
+	def parse_if(self) -> Node.If:
 
 		self.expect_keyword(KeywordType.If, True)
 
 		condition = self.parse_expression()
 		
-		then_block = self.parse_statement()
+		then_block = self.parse_block()
 
 		if self.expect_keyword(KeywordType.Else) is not None:
-			else_stmt = self.parse_statement()	
+			else_stmt = self.parse_block()	
 		else:
-			else_stmt = False
+			else_stmt = None
 
-		return Node.If(condition, then_block, else_stmt)  # type: ignore
+		return Node.If(condition, then_block, else_stmt)
 
 
 	def parse_while(self) -> Node.While:
@@ -335,5 +348,5 @@ class Parser:
 
 		body = self.parse_block()
 
-		return Node.Function(name.value, params, body, return_type)
+		return Node.Function(name.value, params, body, return_type) # type: ignore , the above ensures that the name is a string
 

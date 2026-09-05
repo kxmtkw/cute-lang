@@ -1,5 +1,7 @@
 from Compiler.codegen.state import GeneratorState
-from Compiler.parser.nodes import BinaryOpType, NodeVisitor, Node
+from Compiler.defs.expr import ExprLiteralType
+from Compiler.defs.op import BinaryOpType, UnaryOpType
+from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.codegen.image import ImageBuilder
 from Compiler.codegen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
 from Compiler.codegen.builtin import BuiltinHandler
@@ -34,7 +36,7 @@ class CodeGenerator(NodeVisitor):
 
 	
 	def visitProgram(self, node: Node.Program):
-		for func in node.statements:
+		for func in node.functions:
 			self.visit(func)
 
 		self.program.assemble(self.builder)
@@ -68,14 +70,17 @@ class CodeGenerator(NodeVisitor):
 			raise ValueError()
 
 		match node.type:
-			case "int":
+			case ExprLiteralType.Int:
 				instr = InstrSet.loadi32
-			case "float":
+			case ExprLiteralType.Float:
 				instr = InstrSet.loadf32
-			case "bool":
+			case ExprLiteralType.Bool:
 				instr = InstrSet.loadbyte
 				node.value = 1 if node.value else 0
-			case "string":
+			case ExprLiteralType.Char:
+				instr = InstrSet.loadbyte
+				node.value = ord(node.value)
+			case ExprLiteralType.String:
 				raise ValueError("String literals are not supported yet.")
 
 		self.state.current_procedure.instructions.append(
@@ -86,10 +91,10 @@ class CodeGenerator(NodeVisitor):
 
 
 	def visitIdentifier(self, node: Node.Identifier):
-		slot = self.state.get_variable_slot(node.name)
+		slot = self.state.get_variable_slot(node.value)
 		if slot is None:
 			slot = self.state.get_tmp_slot()
-			id = self.state.get_procedure_id(node.name)
+			id = self.state.get_procedure_id(node.value)
 			self.state.current_procedure.instructions.append(
 				Instruction(InstrSet.loadu32, [slot, id])
 			)
@@ -226,7 +231,7 @@ class CodeGenerator(NodeVisitor):
 
 
 		if isinstance(node.callee, Node.Identifier):
-			if node.callee.name == "__builtin__":
+			if node.callee.value == "__builtin__":
 				self.builtin.handle(node)
 				return
 

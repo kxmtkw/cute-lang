@@ -1,41 +1,14 @@
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import List, Literal, Optional, Union
 from abc import ABC, abstractmethod
 
+from Compiler.defs.op import BinaryOpType, UnaryOpType
+from Compiler.defs.expr import ExprLiteralType
 
-class BinaryOpType(Enum):
-	Access = auto()
-	Assign = auto()
-	Add = auto()
-	Sub = auto()
-	Mul = auto()
-	Div = auto()
-	Mod = auto()
-	Pow = auto()
-	Eq = auto()
-	Neq = auto()
-	Lt = auto()
-	Gt = auto()
-	Lte = auto()
-	Gte = auto()
-	And = auto()
-	Or = auto()
-	BitAnd = auto()
-	BitOr = auto()
-	BitXor = auto()
-	Shl = auto()
-	Shr = auto()
-
-
-class UnaryOpType(Enum):
-	Negate = auto()
-	Not = auto()
-	BitNot = auto()
 
 
 class Node:
-
 
 	class Base:
 
@@ -70,14 +43,13 @@ class Node:
 
 			return "\n".join(lines)
 
-
 		def __repr__(self) -> str:
 			return self.dump()
 
 
 	@dataclass
 	class Program(Base):
-		statements: List["Node.Base"] = field(default_factory=list)
+		functions: List["Node.Function"]
 
 
 	@dataclass
@@ -95,12 +67,12 @@ class Node:
 	@dataclass
 	class Literal(Expression):
 		value: Union[int, float, str, bool]
-		type: Literal["int", "float", "string", "bool"]
+		type: ExprLiteralType
 
 
 	@dataclass
 	class Identifier(Expression):
-		name: str
+		value: str
 
 
 	@dataclass
@@ -111,8 +83,8 @@ class Node:
 	@dataclass
 	class If(Expression):
 		condition: "Node.Expression"
-		then_branch: "Node.Expression"
-		else_branch: Optional["Node.Expression"]
+		then_branch: "Node.Block"
+		else_branch: Optional["Node.Block"]
 
 
 	@dataclass
@@ -154,6 +126,7 @@ class Node:
 		callee: "Node.Expression" 
 		args: List["Node.Expression"]
 
+
 	@dataclass
 	class Return(Expression):
 		value: Optional["Node.Expression"] = None
@@ -161,7 +134,6 @@ class Node:
 
 
 class NodeVisitor(ABC):
-
 
 	def visit(self, node: Node.Base):
 		method_name = f"visit{node.__class__.__name__}"
@@ -184,6 +156,7 @@ class NodeVisitor(ABC):
 	def visitFunction(self, node: Node.Function):
 		pass
 
+
 	@abstractmethod
 	def visitLiteral(self, node: Node.Literal):
 		pass
@@ -198,6 +171,7 @@ class NodeVisitor(ABC):
 	def visitBlock(self, node: Node.Block):
 		pass
 
+
 	@abstractmethod
 	def visitIf(self, node: Node.If):
 		pass
@@ -206,6 +180,7 @@ class NodeVisitor(ABC):
 	@abstractmethod
 	def visitWhile(self, node: Node.While):
 		pass
+
 
 	@abstractmethod
 	def visitFor(self, node: Node.For):

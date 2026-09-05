@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from Compiler.lexer.tokens import Token, TokenType, SymbolType, KeywordType, KEYWORD_MAP, SYMBOL_MAP
+from Compiler.lexer.defs import Token, TokenType, SymbolType, KeywordType, KEYWORD_MAP, SYMBOL_MAP
+
 
 
 class Lexer:
