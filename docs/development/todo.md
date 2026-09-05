@@ -5,8 +5,8 @@ A list of stuff to do.
 
 ### Language & Compiler
 
-- Implement functions in the the language
-- Add `__builtin__` to the language.
+- Implement functions in the the language (`DONE`)
+- Add `__builtin__` to the language. (`ONGOING`)
 ```
 __builtin__ out int x
 
@@ -25,7 +25,7 @@ __builtin__ addi x y z
 
 - Add name resolution with scoping (no closures).
 - Add type checking.
-- Add containers.
+- Add containers. (`QUEUED`)
 - Add virtual containers or box.
 	- It would be preferred that this is used to represent the primitive types.	
 	- That would allow the type checker to purely be container based.
