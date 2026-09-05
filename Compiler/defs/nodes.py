@@ -1,66 +1,31 @@
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Literal, Optional, Union
+from typing import List, Optional, Union
 from abc import ABC, abstractmethod
 
 from Compiler.defs.op import BinaryOpType, UnaryOpType
 from Compiler.defs.expr import ExprLiteralType
-
+from Compiler.defs.node_base import NodeBase
+from Compiler.defs.scope import NameScope
 
 
 class Node:
 
-	class Base:
-
-		def dump(self, level: int = 0) -> str:
-			indent = "  " * level
-			node_name = self.__class__.__name__
-
-			children: List[tuple[str, Union["Node.Base", List["Node.Base"]]]] = []
-			info_bits = []
-
-			for k, v in self.__dict__.items():
-				if isinstance(v, Node.Base) or (
-					isinstance(v, list) and v and isinstance(v[0], Node.Base)
-				):
-					children.append((k, v))
-				elif isinstance(v, Enum):
-					info_bits.append(f"{k}={v.name}")
-				elif v is not None:
-					info_bits.append(f"{k}={v!r}")
-
-			info_str = f" ({', '.join(info_bits)})" if info_bits else ""
-			lines = [f"{indent}{node_name}{info_str}"]
-
-			for name, child in children:
-				if isinstance(child, list):
-					lines.append(f"{indent}  {name}:")
-					for item in child:
-						lines.append(item.dump(level + 2))
-				else:
-					lines.append(f"{indent}  {name}:")
-					lines.append(child.dump(level + 2))
-
-			return "\n".join(lines)
-
-		def __repr__(self) -> str:
-			return self.dump()
-
 
 	@dataclass
-	class Program(Base):
+	class Program(NodeBase):
 		functions: List["Node.Function"]
+		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
-	class Function(Base):
+	class Function(NodeBase):
 		name: str
 		params: List["Node.Declaration"]
 		body: "Node.Block"
 		return_type: Optional[str] = None
 
 
-	class Expression(Base):
+	class Expression(NodeBase):
 		pass
 
 
@@ -78,6 +43,7 @@ class Node:
 	@dataclass
 	class Block(Expression):
 		statements: List["Node.Expression"]
+		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
@@ -135,13 +101,13 @@ class Node:
 
 class NodeVisitor(ABC):
 
-	def visit(self, node: Node.Base):
+	def visit(self, node: NodeBase):
 		method_name = f"visit{node.__class__.__name__}"
 		visitor_method = getattr(self, method_name, self._generic_visit)
 		return visitor_method(node)
 
 
-	def _generic_visit(self, node: Node.Base):
+	def _generic_visit(self, node: NodeBase):
 		raise NotImplementedError(
 			f"No visit{node.__class__.__name__} method defined in {self.__class__.__name__}"
 		)
