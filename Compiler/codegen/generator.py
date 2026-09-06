@@ -27,8 +27,9 @@ INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
 
 class CodeGenerator(NodeVisitor):
 
-	def __init__(self) -> None:
+	def __init__(self, outpath: str) -> None:
 		super().__init__()
+		self.outpath = outpath
 		self.state = GeneratorState()
 		self.builder = ImageBuilder()
 		self.program = Program([], [])
@@ -41,7 +42,7 @@ class CodeGenerator(NodeVisitor):
 
 		self.program.assemble(self.builder)
 		image = self.builder.compile()
-		with open("dev/test.cute", "wb") as file:
+		with open(self.outpath, "wb") as file:
 			file.write(image)
 
 		print(self.program)

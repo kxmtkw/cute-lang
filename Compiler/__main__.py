@@ -31,8 +31,11 @@ def main():
 
 	print("\n" + "-"*10 + "\n")
 
-	gen = CodeGenerator()
+	outpath = filepath.removesuffix(".ct") + ".cute"
+	gen = CodeGenerator(outpath)
 	gen.visit(program)
+
+	print(f"--- Program Image written to {outpath}")
 
 
 if __name__ == "__main__":
