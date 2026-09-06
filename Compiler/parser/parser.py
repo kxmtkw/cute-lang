@@ -104,6 +104,9 @@ class Parser:
 		elif self.expect_symbol(SymbolType.LBrace):
 			self.backtrack()
 			node = self.parse_block()
+		elif self.expect_keyword(KeywordType.Builtin):
+			self.backtrack()
+			node = self.parse_builtin()
 		else:
 			node = self.parse_expression()
 
@@ -349,4 +352,18 @@ class Parser:
 		body = self.parse_block()
 
 		return Node.Function(name.value, params, body, return_type) # type: ignore , the above ensures that the name is a string
+
+
+	def parse_builtin(self) -> Node.BuiltinCommand:
+
+		self.expect_keyword(KeywordType.Builtin)
+		self.expect_symbol(SymbolType.Colon, True)
+
+		args: list[Node.Identifier] = []
+
+		while not (self.expect_symbol(SymbolType.Semicolon) or self.expect_token_type(TokenType.EOL)):
+			token = self.expect_token_type(TokenType.Word, True)
+			args.append(Node.Identifier(token.value)) # type: ignore ensured
+
+		return Node.BuiltinCommand(args)
 

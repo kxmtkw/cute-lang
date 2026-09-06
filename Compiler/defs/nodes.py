@@ -23,7 +23,8 @@ class Node:
 		params: List["Node.Declaration"]
 		body: "Node.Block"
 		return_type: Optional[str] = None
-
+		n_scope: NameScope = field(default_factory=NameScope)
+		
 
 	class Expression(NodeBase):
 		pass
@@ -96,6 +97,12 @@ class Node:
 	@dataclass
 	class Return(Expression):
 		value: Optional["Node.Expression"] = None
+
+
+	@dataclass
+	class BuiltinCommand(Expression):
+		args: list["Node.Identifier"]
+
 
 
 
@@ -175,4 +182,8 @@ class NodeVisitor(ABC):
 
 	@abstractmethod
 	def visitReturn(self, node: Node.Return):
+		pass
+
+	@abstractmethod
+	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
 		pass

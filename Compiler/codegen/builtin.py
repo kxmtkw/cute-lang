@@ -32,7 +32,7 @@ class BuiltinHandler:
 		self.current_handler_arguments = []
 
 
-	def handle(self, builtin_call: Node.Call):
+	def handle(self, builtin_call: Node.BuiltinCommand):
 		if len(builtin_call.args) == 0:
 			return
 			

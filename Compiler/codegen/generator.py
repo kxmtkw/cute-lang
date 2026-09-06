@@ -229,12 +229,6 @@ class CodeGenerator(NodeVisitor):
 
 	def visitCall(self, node: Node.Call):
 
-
-		if isinstance(node.callee, Node.Identifier):
-			if node.callee.value == "__builtin__":
-				self.builtin.handle(node)
-				return
-
 		slots = self.state.get_continous_slots(len(node.args))
 
 		for i, arg in enumerate(node.args):
@@ -258,4 +252,6 @@ class CodeGenerator(NodeVisitor):
 		for slot in slots:
 				self.state.free_slot_if_tmp(slot)
 
-		
+
+	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+		self.builtin.handle(node)

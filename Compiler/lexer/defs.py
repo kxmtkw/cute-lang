@@ -12,6 +12,7 @@ class KeywordType(Enum):
 	For = "for"
 	If = "if"
 	Else = "else"
+	Builtin = "__builtin__"
 
 
 class SymbolType(Enum):

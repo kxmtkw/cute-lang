@@ -5,7 +5,8 @@ from Compiler.defs.node_base import NodeBase
 
 class NameScope:
 
-	def __init__(self) -> None:
+	def __init__(self, parent: Optional["NameScope"] = None) -> None:
+		self.parent = parent
 		self._defintions: dict[str, NodeBase] = {}
 
 
@@ -14,11 +15,23 @@ class NameScope:
 
 
 	def __getitem__(self, key: str):
-		return self._defintions[key]
+		if key in self._defintions:
+			return self._defintions[key]
+
+		if self.parent is not None:
+			return self.parent[key]
+
+		raise KeyError(key)
 
 
 	def get(self, key: str, default: Optional[NodeBase]):
-		return self._defintions.get(key, default)
+		if key in self._defintions:
+			return self._defintions[key]
+
+		if self.parent is not None:
+			return self.parent.get(key, default)
+
+		return default
 
 
 	def has(self, key: str) -> bool:
@@ -26,7 +39,10 @@ class NameScope:
 
 
 	def remove(self, key: str):
-		self._defintions.pop(key)
+		if key in self._defintions:
+			return self._defintions.pop(key)
 
+		if self.parent is not None:
+			return self.parent.remove(key)
 
-NameScopeStack: TypeAlias = list[NameScope]
+		raise KeyError(key)

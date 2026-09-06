@@ -1,6 +1,7 @@
 import sys
 from Compiler.lexer.lexer import Lexer
 from Compiler.parser.parser import Parser
+from Compiler.resolver.resolver import Resolver
 from Compiler.codegen.generator import CodeGenerator
 
 
@@ -24,6 +25,9 @@ def main():
 	parser = Parser(tokens)
 	program = parser.parse()
 	print(program.dump())
+
+	resolver = Resolver()
+	resolver.visit(program)
 
 	print("\n" + "-"*10 + "\n")
 
