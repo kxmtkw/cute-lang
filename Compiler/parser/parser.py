@@ -357,7 +357,6 @@ class Parser:
 	def parse_builtin(self) -> Node.BuiltinCommand:
 
 		self.expect_keyword(KeywordType.Builtin)
-		self.expect_symbol(SymbolType.Colon, True)
 
 		args: list[Node.Identifier] = []
 
