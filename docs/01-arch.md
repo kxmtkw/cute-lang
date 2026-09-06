@@ -11,47 +11,46 @@
 
 ### Toolchain Pipeline
 ```
-Source Code (.csm)
+Source Code (.ct)
 		|
 	    v
-┌───────────────┐
-│   Cute Asm    │  (Compiling assembly file/s to a single image file)
-└───────────────┘
+┌────────────────────┐
+│    Cute Compiler   │  (Compiling code file/s to a single image file)
+└────────────────────┘
 		|
 		v
 Executable Image (.cute)
 		|
 		v
-┌────────────────┐
-│  Cute Runtime  │  (Executing image file)
-└────────────────┘
+┌────────────────────┐
+│    Cute Runtime    │  (Executing image file)
+└────────────────────┘
 ```
 
 ### Project Structure
 ``` bash
 .
-├── Assembler # Main Assembler Source Code
-│   ├── assembler # asssembler Core
-│   ├── codegen  # writing bytecode and resolving symbols
-│   ├── include # public header
-│   ├── spec # instruction maps and program repr
-│   └── tokenizer # lexing asm files
+├── Compiler # Main Cute Compiler
+│   ├── lexer  # converts source code into lexemes 
+│   ├── parser # parses tokens to construct an ast
+│   ├── resolver # name resolution and operation resolution
+│   ├── codegen # converting AST to bytecode
+│   └── defs # common definitions required by the compiler
 │
 ├── Runtime # Main Engine Source Code
 │   ├── common # common headers needed throughout the engine
 │   ├── container # sub class of object, exposed to the asm
 │   ├── core # heart of the runtime
-│   ├── include # public header
+│   ├── include # public header including the engine defs and instruction set
 │   ├── modules # module system for extended functionality
 │   ├── objects # objects subsystem, gc, object defintions and manager
 │   └── utils # small utils needed in the engine
 │
-├── Instr # Main Instruction Set Definition and Image Writing/Reading
-│   └── include # public header
-│
-├── main # Main binary entry points: cute and cuteasm
+├── main # Main binary entry point: cute
 │
 ├── dev # Place for testing
+│
+├── editor # tooling for editors
 │
 └── docs # Documentation
     └── records # list of recorded design choices
