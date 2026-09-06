@@ -1,0 +1,110 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Cute",
+  "scopeName": "source.cute",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#declarations" },
+    { "include": "#types" },
+    { "include": "#builtins" },
+    { "include": "#keywords" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.cute",
+          "begin": "///",
+          "end": "///",
+          "patterns": [
+            { "name": "punctuation.definition.comment.begin.cute", "match": "///" }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.cute",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.cute",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.cute", "match": "\\\\." }
+          ]
+        },
+        {
+          "name": "string.quoted.single.cute",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "name": "constant.character.escape.cute", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.hex.cute", "match": "\\b0[xX][0-9a-fA-F]+\\b" },
+        { "name": "constant.numeric.binary.cute", "match": "\\b0[bB][01]+\\b" },
+        { "name": "constant.numeric.float.cute", "match": "(?<![[:alnum:]_])(?:[0-9]+\\.[0-9]+)(?![[:alnum:]_])" },
+        { "name": "constant.numeric.integer.cute", "match": "(?<![[:alnum:]_])[0-9]+(?![[:alnum:]_])" }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(func)\\s+([A-Za-z_][A-Za-z0-9_]*(?:\\.#[A-Za-z_][A-Za-z0-9_]*)?)",
+          "captures": {
+            "1": { "name": "storage.type.function.cute" },
+            "2": { "name": "entity.name.function.cute" }
+          }
+        },
+        {
+          "match": "\\b(container)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.cute" },
+            "2": { "name": "entity.name.type.class.cute" }
+          }
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.cute",
+          "match": "(?<=:)[ \\t]*[A-Za-z_][A-Za-z0-9_]*"
+        },
+        {
+          "name": "entity.name.type.cute",
+          "match": "(?<=->)[ \\t]*[A-Za-z_][A-Za-z0-9_]*"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        { "name": "support.function.builtin.cute", "match": "\\b__builtin__\\b" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        { "name": "keyword.control.cute", "match": "\\b(?:return|if|else|while|for)\\b" },
+        { "name": "storage.modifier.cute", "match": "\\b(?:let|raw|inline)\\b" },
+        { "name": "constant.language.boolean.cute", "match": "\\b(?:true|false)\\b" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "keyword.operator.cute", "match": "(?:->|\\*\\*|==|!=|>=|<=|<<|>>|&&|\\|\\||[+\\-*/%=<>!^&|])" },
+        { "name": "punctuation.separator.cute", "match": "[,:;]" },
+        { "name": "punctuation.section.group.cute", "match": "[(){}\\[\\]]" }
+      ]
+    }
+  }
+}
