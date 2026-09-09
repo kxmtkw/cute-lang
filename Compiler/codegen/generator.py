@@ -20,9 +20,17 @@ INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
 	BinaryOpType.BitOr: InstrSet.bor,
 	BinaryOpType.BitXor: InstrSet.bxor,
 	BinaryOpType.Shl: InstrSet.bshl,
-	BinaryOpType.Shr: InstrSet.bshr,
+	BinaryOpType.Shr: InstrSet.bshr
 }
 
+CMP_INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
+	BinaryOpType.Eq: InstrSet.eq,
+	BinaryOpType.Neq: InstrSet.ne,
+	BinaryOpType.Lt: InstrSet.lt,
+	BinaryOpType.Lte: InstrSet.le,
+	BinaryOpType.Gt: InstrSet.gt,
+	BinaryOpType.Gte: InstrSet.ge,
+}
 
 
 class CodeGenerator(NodeVisitor):
@@ -203,6 +211,13 @@ class CodeGenerator(NodeVisitor):
 			instr = INSTRUCTION_ENCODING_TABLE[node.op]
 			operation = Instruction(instr, [slot, t1, t2])
 			self.state.current_procedure.instructions.append(operation)
+			self.state.push_slot(slot)
+
+		elif node.op in CMP_INSTRUCTION_ENCODING_TABLE:
+			slot = self.state.get_tmp_slot()
+			instr = CMP_INSTRUCTION_ENCODING_TABLE[node.op]
+			self.state.current_procedure.instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
+			self.state.current_procedure.instructions.append(Instruction(instr, [slot]))
 			self.state.push_slot(slot)
 	
 
