@@ -280,7 +280,7 @@ class Parser:
 		then_block = self.parse_block()
 
 		if self.expect_keyword(KeywordType.Else) is not None:
-			else_stmt = self.parse_block()	
+			else_stmt = self.parse_statement()	
 		else:
 			else_stmt = None
 

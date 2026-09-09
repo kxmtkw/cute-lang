@@ -51,7 +51,7 @@ class Node:
 	class If(Expression):
 		condition: "Node.Expression"
 		then_branch: "Node.Block"
-		else_branch: Optional["Node.Block"]
+		else_branch: Optional["Node.Expression"]
 
 
 	@dataclass
