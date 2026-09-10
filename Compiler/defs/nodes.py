@@ -24,6 +24,12 @@ class Node:
 		body: "Node.Block"
 		return_type: Optional[str] = None
 		n_scope: NameScope = field(default_factory=NameScope)
+
+
+	@dataclass
+	class Container(NodeBase):
+		name: str 
+		members: list["Node.Declaration"]
 		
 
 	class Expression(NodeBase):
@@ -102,6 +108,7 @@ class Node:
 	@dataclass
 	class BuiltinCommand(Expression):
 		args: list["Node.Identifier"]
+
 
 
 

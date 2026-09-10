@@ -76,6 +76,11 @@ class Parser:
 				func = self.parse_func()
 				nodes.append(func)
 				continue
+			if self.expect_keyword(KeywordType.Container):
+				self.backtrack()
+				func = self.parse_container()
+				nodes.append(func)
+				continue
 
 		program = Node.Program(nodes)
 
@@ -250,9 +255,9 @@ class Parser:
 		return Node.Block(stmts)
 	
 
-	def parse_decl(self, *, type_must_be_specified: bool = False) -> Node.Declaration:
+	def parse_decl(self, *, type_must_be_specified: bool = False, let_required: bool = True, no_value: bool = False) -> Node.Declaration:
 
-		self.expect_keyword(KeywordType.Let, False)
+		self.expect_keyword(KeywordType.Let, let_required)
 
 		name = self.expect_token_type(TokenType.Word, True)
 
@@ -263,7 +268,8 @@ class Parser:
 				raise ValueError("Type must be specified for this declaration.")
 			decl_type = None
 
-		if self.expect_symbol(SymbolType.Assign):
+
+		if self.expect_symbol(SymbolType.Assign) and not no_value:
 			value = self.parse_expression()
 		else:
 			value = None
@@ -337,7 +343,7 @@ class Parser:
 		while True:
 			if self.expect_symbol(SymbolType.RParen):
 				break
-			params.append(self.parse_decl(type_must_be_specified=True))
+			params.append(self.parse_decl(type_must_be_specified=True, let_required=False))
 			self.expect_symbol(SymbolType.Comma, False)
 
 
@@ -365,4 +371,33 @@ class Parser:
 			args.append(Node.Identifier(token.value)) # type: ignore ensured
 
 		return Node.BuiltinCommand(args)
+
+
+	def parse_container(self) -> Node.Container:
+
+		self.expect_keyword(KeywordType.Container)
+
+		name = self.expect_token_type(TokenType.Word, True).value
+
+		self.expect_symbol(SymbolType.LBrace)
+		elements = []
+
+		while not self.expect_symbol(SymbolType.RBrace):
+			self.eat_stmt_enders()
+			elements.append(self.parse_decl(type_must_be_specified=True, let_required=False, no_value=True))
+
+			if self.expect_symbol(SymbolType.Comma):
+				continue
+			
+			self.eat_stmt_enders()
+			if self.expect_symbol(SymbolType.RBrace):
+				break
+			
+
+		return Node.Container(
+			name,
+			elements
+		)
+			
+
 
