@@ -1,8 +1,8 @@
 from Compiler.codegen.state import GeneratorState
 from Compiler.defs.nodes import NodeVisitor, Node
-from Compiler.codegen.image import ImageBuilder
-from Compiler.codegen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
-from Compiler.codegen.image import Format
+from Compiler.imagen.image import ImageBuilder
+from Compiler.imagen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
+from Compiler.imagen.image import Format
 
 
 OUT_FMT: dict[str, int] = {
