@@ -12,7 +12,8 @@ OUT_FMT: dict[str, int] = {
 	"uint": 3,
 	"float": 4,
 	"bool": 5,
-	"object": 6
+	"char": 6,
+	"object": 7
 }
 
 
