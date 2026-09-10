@@ -5,6 +5,10 @@ A list of stuff to do.
 
 ### Language & Compiler
 
+- Refactor `codegen` module.
+- Refactor `parser`
+- Refactor `lexer`
+- Refactor `resolver`
 - Implement functions in the the language (`DONE`)
 - Add `__builtin__` to the language. (`ONGOING`)
 ```
@@ -23,9 +27,9 @@ __builtin__ out int 10
 __builtin__ addi x y z
 ```
 
-- Add name resolution with scoping (no closures).
+- Add name resolution with scoping (no closures). (`ONGOING`)
 - Add type checking.
-- Add containers. (`QUEUED`)
+- Add containers. (`ONGOING`)
 - Add virtual containers or box.
 	- It would be preferred that this is used to represent the primitive types.	
 	- That would allow the type checker to purely be container based.
