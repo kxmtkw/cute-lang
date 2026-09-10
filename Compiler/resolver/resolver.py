@@ -120,3 +120,10 @@ class Resolver(NodeVisitor):
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
 		pass
+
+	
+	def visitContainer(self, node: Node.Container):
+		self.current_scope[node.name] = node
+
+		for member in node.members:
+			node.n_scope[member.name] = member

@@ -30,6 +30,7 @@ class Node:
 	class Container(NodeBase):
 		name: str 
 		members: list["Node.Declaration"]
+		n_scope: NameScope = field(default_factory=NameScope)
 		
 
 	class Expression(NodeBase):
@@ -193,4 +194,8 @@ class NodeVisitor(ABC):
 
 	@abstractmethod
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+		pass
+
+	@abstractmethod
+	def visitContainer(self, node: Node.Container):
 		pass
