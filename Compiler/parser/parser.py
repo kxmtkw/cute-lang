@@ -379,6 +379,13 @@ class Parser:
 
 		name = self.expect_token_type(TokenType.Word, True).value
 
+		if self.expect_symbol(SymbolType.Star):
+			return Node.Container(
+				name,
+				True,
+				[]
+			)
+
 		self.expect_symbol(SymbolType.LBrace)
 		elements = []
 
@@ -396,6 +403,7 @@ class Parser:
 
 		return Node.Container(
 			name,
+			False,
 			elements
 		)
 			

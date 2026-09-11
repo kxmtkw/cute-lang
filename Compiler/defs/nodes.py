@@ -29,7 +29,9 @@ class Node:
 	@dataclass
 	class Container(NodeBase):
 		name: str 
+		virtual: bool
 		members: list["Node.Declaration"]
+		methods: list["Node.Function"] = field(default_factory=list)
 		n_scope: NameScope = field(default_factory=NameScope)
 		
 
