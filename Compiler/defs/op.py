@@ -9,7 +9,6 @@ class BinaryOpType(Enum):
 	Mul = auto()
 	Div = auto()
 	Mod = auto()
-	Pow = auto()
 	Eq = auto()
 	Neq = auto()
 	Lt = auto()

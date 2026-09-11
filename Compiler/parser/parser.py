@@ -269,7 +269,7 @@ class Parser:
 			decl_type = None
 
 
-		if self.expect_symbol(SymbolType.Assign) and not no_value:
+		if self.expect_symbol(SymbolType.Equal) and not no_value:
 			value = self.parse_expression()
 		else:
 			value = None

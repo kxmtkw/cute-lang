@@ -39,16 +39,7 @@ class Node:
 		pass
 
 
-	@dataclass
-	class Literal(Expression):
-		value: Union[int, float, str, bool]
-		type: ExprLiteralType
-
-
-	@dataclass
-	class Identifier(Expression):
-		value: str
-
+	# Statement expressions
 
 	@dataclass
 	class Block(Expression):
@@ -82,6 +73,19 @@ class Node:
 		name: str
 		type: str
 		value: "Node.Expression"
+
+
+	# true expressions
+
+	@dataclass
+	class Literal(Expression):
+		value: Union[int, float, str, bool]
+		type: ExprLiteralType
+
+
+	@dataclass
+	class Identifier(Expression):
+		value: str
 
 
 	@dataclass
