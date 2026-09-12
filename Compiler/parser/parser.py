@@ -69,6 +69,7 @@ class Parser:
 		nodes = []
 
 		while self.peek().type != TokenType.EOF:
+
 			self.eat_stmt_enders()
 
 			if self.expect_keyword(KeywordType.Func):
@@ -76,12 +77,15 @@ class Parser:
 				func = self.parse_func()
 				nodes.append(func)
 				continue
+
 			if self.expect_keyword(KeywordType.Container):
 				self.backtrack()
 				func = self.parse_container()
 				nodes.append(func)
 				continue
 
+			raise ValueError(f"Unexpected token: {self.peek()}")
+		
 		program = Node.Program(nodes)
 
 		return program
@@ -91,49 +95,40 @@ class Parser:
 
 		self.eat_stmt_enders()
 
-		if self.expect_keyword(KeywordType.Let):
-			self.backtrack()
-			node = self.parse_decl()
-		elif self.expect_keyword(KeywordType.If):
-			self.backtrack()
-			node = self.parse_if()
-		elif self.expect_keyword(KeywordType.While):
-			self.backtrack()
-			node = self.parse_while()
-		elif self.expect_keyword(KeywordType.For):
-			self.backtrack()
-			node = self.parse_for()
-		elif self.expect_keyword(KeywordType.Return):
-			self.backtrack()
-			node = self.parse_return()
-		elif self.expect_symbol(SymbolType.LBrace):
-			self.backtrack()
-			node = self.parse_block()
-		elif self.expect_keyword(KeywordType.Builtin):
-			self.backtrack()
-			node = self.parse_builtin()
+		handlers: dict = {
+			KeywordType.Let:     self.parse_decl,
+			KeywordType.If:      self.parse_if,
+			KeywordType.While:   self.parse_while,
+			KeywordType.For:     self.parse_for,
+			KeywordType.Return:  self.parse_return,
+			KeywordType.Builtin: self.parse_builtin,
+			SymbolType.LBrace:   self.parse_block,
+		}
+
+		current_token = self.peek()
+
+		if current_token.value in handlers:
+			node = handlers[current_token.value]()
 		else:
 			node = self.parse_expression()
-
-		self.eat_stmt_enders()
 
 		return node
 		
 
 	def parse_expression(self, prev_bp: float = 0) -> Node.Expression:
 
-		sym = self.expect_token_type(TokenType.Symbol)
+		symbol_token = self.expect_token_type(TokenType.Symbol)
 
-		if sym is None:
+		if symbol_token is None:
 			lhs = self.parse_atom()
 
-		elif sym.value == SymbolType.LParen:
+		elif symbol_token.value == SymbolType.LParen:
 			lhs = self.parse_expression()
 			if self.expect_symbol(SymbolType.RParen) is None:
 				raise ValueError("Unterminated paran.")
 
-		elif sym.value in r.UNARY_OP_MAPPING:
-			unary = r.UNARY_OP_MAPPING[sym.value]
+		elif symbol_token.value in r.UNARY_OP_MAPPING:
+			unary = r.UNARY_OP_MAPPING[symbol_token.value]
 			l_bp, r_bp = r.OPERATOR_BINDING_POWER[unary]
 			lhs = self.parse_expression(r_bp)
 			lhs = Node.UnaryOp(
@@ -147,30 +142,22 @@ class Parser:
 
 		while True:
 
-			if self.peek().type in [
-				TokenType.EOF,
-				TokenType.EOL
-			]:
+			if self.expect_token_type(TokenType.EOL) or self.expect_token_type(TokenType.EOF) or self.peek().value in r.STATEMENT_ENDERS:
 				return lhs
 
-			symbol = self.expect_token_type(TokenType.Symbol, True)
+			symbol_token = self.expect_token_type(TokenType.Symbol, True)
 
-			if symbol is None:
+			if symbol_token is None:
 				raise ValueError("Expected symbol.")
-			
-			if symbol.value in r.STATEMENT_ENDERS:
-				self.backtrack()
-				return lhs
 
-			if symbol.value == SymbolType.LParen:
+			if symbol_token.value == SymbolType.LParen:
 				self.backtrack()
 				if prev_bp >= r.PARENTHESIS_INFIX_BP:
 					return lhs
 				lhs = self.parse_call(lhs)
 				continue
 
-			# symbol token will always be a token, do not need to check it here
-			operation = r.BINARY_OPERATOR_MAPPING.get(symbol.value, r.UNARY_OP_MAPPING.get(symbol)) # type: ignore
+			operation = r.BINARY_OPERATOR_MAPPING.get(symbol_token.extract(SymbolType))
 
 			if operation is None:
 				raise ValueError(f"Unknown token: {self.peek()}")
@@ -189,41 +176,28 @@ class Parser:
 
 
 	def parse_atom(self) -> Node.Expression:
+		token = self.advance()
 
-		token = self.peek()
+		if token.type in (TokenType.Int, TokenType.Hex, TokenType.Bin):
+			return Node.Literal(token.extract(int), ExprLiteralType.Int)
 
-		if token.type in [
-			TokenType.Int,
-			TokenType.Hex,
-			TokenType.Bin,
-			TokenType.Float,
-			TokenType.Bool,
-			TokenType.Char,
-			TokenType.String
-		]:
-			self.advance()
-			match token.type:
-				case TokenType.Int | TokenType.Hex | TokenType.Bin:
-					literal_type = ExprLiteralType.Int
-				case TokenType.Float:
-					literal_type = ExprLiteralType.Float
-				case TokenType.Bool:
-					literal_type = ExprLiteralType.Bool
-				case TokenType.Char:
-					literal_type = ExprLiteralType.Char
-				case TokenType.String:
-					literal_type = ExprLiteralType.String
-				case _:
-					raise ValueError("Unknown literal type.")
+		elif token.type == TokenType.Float:
+			return Node.Literal(token.extract(float), ExprLiteralType.Float)
 
-			return Node.Literal(token.value, literal_type) # type: ignore , the above ensures that the value is of the correct type for the literal type
+		elif token.type == TokenType.Bool:
+			return Node.Literal(token.extract(int), ExprLiteralType.Bool)
 
+		elif token.type == TokenType.Char:
+			return Node.Literal(token.extract(str), ExprLiteralType.Char)
 
-		if token.type == TokenType.Word:
-			self.advance()
-			return Node.Identifier(token.value) # type: ignore
+		elif token.type == TokenType.String:
+			return Node.Literal(token.extract(str), ExprLiteralType.String)
 
-		raise ValueError(f"Expected atomic expression! Got {self.peek()}")
+		elif token.type == TokenType.Word:
+			return Node.Identifier(token.extract(str))
+
+		else:
+			raise ValueError(f"Expected atomic expression! Got {token}")
 
 
 	def parse_call(self, callee: Node.Expression) -> Node.Call:
@@ -259,10 +233,14 @@ class Parser:
 
 		self.expect_keyword(KeywordType.Let, let_required)
 
-		name = self.expect_token_type(TokenType.Word, True)
+		name_token = self.expect_token_type(TokenType.Word, True)
+		assert name_token is not None
+		name = name_token.extract(str)
 
 		if self.expect_symbol(SymbolType.Colon):
-			decl_type = self.expect_token_type(TokenType.Word, True).value # type: ignore
+			decl_type_token = self.expect_token_type(TokenType.Word, True)
+			assert decl_type_token is not None
+			decl_type = decl_type_token.extract(str)
 		else:
 			if type_must_be_specified:
 				raise ValueError("Type must be specified for this declaration.")
@@ -274,7 +252,7 @@ class Parser:
 		else:
 			value = None
 
-		return Node.Declaration(name.value, decl_type, value)  # type: ignore
+		return Node.Declaration(name, decl_type, value)
 
 
 	def parse_if(self) -> Node.If:
@@ -334,7 +312,9 @@ class Parser:
 	def parse_func(self) -> Node.Function:
 
 		self.expect_keyword(KeywordType.Func, True)
-		name = self.expect_token_type(TokenType.Word, True)
+		name_token = self.expect_token_type(TokenType.Word, True)
+		assert name_token is not None
+		name = name_token.extract(str)
 
 		self.expect_symbol(SymbolType.LParen, True)
 
@@ -349,7 +329,7 @@ class Parser:
 
 		if self.expect_symbol(SymbolType.Arrow):
 			return_type = self.expect_token_type(TokenType.Word, True)
-			return_type = return_type.value if return_type is not None else None
+			return_type = return_type.extract(str) if return_type is not None else None
 		else:
 			return_type = None
 
@@ -357,7 +337,7 @@ class Parser:
 
 		body = self.parse_block()
 
-		return Node.Function(name.value, params, body, return_type) # type: ignore , the above ensures that the name is a string
+		return Node.Function(name, params, body, return_type)
 
 
 	def parse_builtin(self) -> Node.BuiltinCommand:
@@ -368,7 +348,8 @@ class Parser:
 
 		while not (self.expect_symbol(SymbolType.Semicolon) or self.expect_token_type(TokenType.EOL)):
 			token = self.expect_token_type(TokenType.Word, True)
-			args.append(Node.Identifier(token.value)) # type: ignore ensured
+			assert token is not None
+			args.append(Node.Identifier(token.extract(str)))
 
 		return Node.BuiltinCommand(args)
 
@@ -377,7 +358,9 @@ class Parser:
 
 		self.expect_keyword(KeywordType.Container)
 
-		name = self.expect_token_type(TokenType.Word, True).value
+		name_token = self.expect_token_type(TokenType.Word, True)
+		assert name_token is not None
+		name = name_token.extract(str)
 
 		if self.expect_symbol(SymbolType.Star):
 			return Node.Container(
@@ -387,11 +370,11 @@ class Parser:
 			)
 
 		self.expect_symbol(SymbolType.LBrace)
-		elements = []
+		fields = []
 
 		while not self.expect_symbol(SymbolType.RBrace):
 			self.eat_stmt_enders()
-			elements.append(self.parse_decl(type_must_be_specified=True, let_required=False, no_value=True))
+			fields.append(self.parse_decl(type_must_be_specified=True, let_required=False, no_value=True))
 
 			if self.expect_symbol(SymbolType.Comma):
 				continue
@@ -404,7 +387,7 @@ class Parser:
 		return Node.Container(
 			name,
 			False,
-			elements
+			fields
 		)
 			
 

@@ -30,7 +30,7 @@ class Node:
 	class Container(NodeBase):
 		name: str 
 		virtual: bool
-		members: list["Node.Declaration"]
+		fields: list["Node.Declaration"]
 		methods: list["Node.Function"] = field(default_factory=list)
 		n_scope: NameScope = field(default_factory=NameScope)
 		
@@ -71,8 +71,8 @@ class Node:
 	@dataclass
 	class Declaration(Expression):
 		name: str
-		type: str
-		value: "Node.Expression"
+		type: Optional[str]
+		value: Optional["Node.Expression"]
 
 
 	# true expressions
