@@ -94,6 +94,30 @@ class GeneratorState:
 			self.current_state.tmp_slots.add(slot)
 		return slot
 
+	def get_continous_tmp_slots(self, count: int) -> list[int] | None:
+		"Get `count` temporary continuous slots, return None if the conditions could not be met."
+		state = self.current_state
+		found: bool = False
+		candidate: int = 0
+
+		for i, occupied in enumerate(state.slots):
+			if occupied:
+				found = False
+				continue
+
+			if not found:
+				candidate = i
+				found = True
+
+			if (i - candidate + 1) == count:
+				slots = list(range(candidate, i + 1))
+				for s in slots:
+					state.slots[s] = True
+					state.tmp_slots.add(s)
+				return slots
+
+		return None
+
 
 	def free_slot(self, slot: int) -> None:
 		"Free a slot."

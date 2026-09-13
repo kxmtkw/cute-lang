@@ -304,7 +304,7 @@ class CodeGenerator(NodeVisitor):
 
 	def visitCall(self, node: Node.Call):
 
-		slots = self.state.get_continous_slots(len(node.args))
+		slots = self.state.get_continous_tmp_slots(len(node.args))
 
 		if len(node.args) > 0:
 
