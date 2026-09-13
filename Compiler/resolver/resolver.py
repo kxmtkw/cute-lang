@@ -26,10 +26,11 @@ class Resolver(NodeVisitor):
 
 	def visitProgram(self, node: Node.Program):
 		self.current_scope = node.n_scope
-		self.current_scope["__builtin__"] = Node.Function("", [], Node.Block([]))
 
 		for func in node.functions:
 			self.visit(func)
+
+		return node
 
 
 	def visitFunction(self, node: Node.Function):
@@ -48,9 +49,11 @@ class Resolver(NodeVisitor):
 
 		self.ascend_scope()
 
+		return node
+
 
 	def visitLiteral(self, node: Node.Literal):
-		pass
+		return node
 
 
 	def visitIdentifier(self, node: Node.Identifier):
@@ -58,6 +61,7 @@ class Resolver(NodeVisitor):
 		if found_node is None and not self.in_builtin_context:
 			raise ValueError(f"Unknown identifier: {node.value}")
 		node.n_refers = found_node
+		return node
 
 
 	def visitBlock(self, node: Node.Block):
@@ -67,6 +71,7 @@ class Resolver(NodeVisitor):
 			self.visit(stmt)
 
 		self.ascend_scope()
+		return node
 
 
 	def visitIf(self, node: Node.If):
@@ -74,11 +79,13 @@ class Resolver(NodeVisitor):
 		self.visit(node.then_branch)
 		if node.else_branch:
 			self.visit(node.else_branch)
+		return node
 
 
 	def visitWhile(self, node: Node.While):
 		self.visit(node.condition)
 		self.visit(node.body)
+		return node
 
 
 	def visitFor(self, node: Node.For):
@@ -86,7 +93,8 @@ class Resolver(NodeVisitor):
 		self.visit(node.condition)
 		self.visit(node.step)
 		self.visit(node.body)
-
+		return node
+		
 
 	def visitDeclaration(self, node: Node.Declaration):
 
@@ -102,14 +110,18 @@ class Resolver(NodeVisitor):
 		if node.value is not None:
 			self.visit(node.value)
 
+		return node
+
 
 	def visitBinaryOp(self, node: Node.BinaryOp):
 		self.visit(node.left)
 		self.visit(node.right)
+		return node
 
 
 	def visitUnaryOp(self, node: Node.UnaryOp):
 		self.visit(node.operand)
+		return node
 
 
 	def visitCall(self, node: Node.Call):
@@ -117,10 +129,13 @@ class Resolver(NodeVisitor):
 		for arg in node.args:
 			self.visit(arg)
 
+		return node
+
 
 	def visitReturn(self, node: Node.Return):
 		if node.value is not None:
 			self.visit(node.value)
+		return node
 
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
@@ -129,6 +144,7 @@ class Resolver(NodeVisitor):
 		for arg in node.args:
 			self.visit(arg)
 		self.in_builtin_context = False
+		return node
 
 	
 	def visitContainer(self, node: Node.Container):
@@ -136,3 +152,5 @@ class Resolver(NodeVisitor):
 
 		for member in node.fields:
 			node.n_scope[member.name] = member
+
+		return node

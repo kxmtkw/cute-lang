@@ -65,6 +65,7 @@ class CodeGenerator(NodeVisitor):
 			file.write(image)
 
 		print(self.program)
+		return node
 
 
 	def visitFunction(self, node: Node.Function):
@@ -85,6 +86,8 @@ class CodeGenerator(NodeVisitor):
 		self.program.procedures.append(proc)
 
 		self.state.end_procedure()
+
+		return node
 
 		
 
@@ -117,6 +120,7 @@ class CodeGenerator(NodeVisitor):
 		)
 		
 		self.state.push_slot(slot)
+		return node
 
 
 	def visitIdentifier(self, node: Node.Identifier):
@@ -147,10 +151,13 @@ class CodeGenerator(NodeVisitor):
 		else:
 			raise ValueError(f"Identifier refers to {node.n_refers} which cannot be converted into any bytecode representative.")
 
+		return node
+	
 
 	def visitBlock(self, node: Node.Block):
 		for stmt in node.statements:
 			self.visit(stmt)
+		return node
 
 
 	def visitIf(self, node: Node.If):
@@ -174,6 +181,8 @@ class CodeGenerator(NodeVisitor):
 
 		self.state.current_procedure.instructions.append(end_if_label)
 
+		return node
+
 
 	def visitWhile(self, node: Node.While):
 
@@ -192,6 +201,8 @@ class CodeGenerator(NodeVisitor):
 			Instruction(InstrSet.jmp, [loop_start])
 		)
 		self.state.current_procedure.instructions.append(loop_end)
+
+		return node
 
 		
 
@@ -214,6 +225,8 @@ class CodeGenerator(NodeVisitor):
 		)
 		self.state.current_procedure.instructions.append(loop_end)
 
+		return node
+
 
 	def visitDeclaration(self, node: Node.Declaration):
 
@@ -231,6 +244,8 @@ class CodeGenerator(NodeVisitor):
 				Instruction(InstrSet.mov, [slot, value_slot])
 			)
 			self.state.free_slot_if_tmp(value_slot)
+
+		return node
 
 
 	def visitBinaryOp(self, node: Node.BinaryOp):
@@ -263,10 +278,12 @@ class CodeGenerator(NodeVisitor):
 
 		self.state.free_slot_if_tmp(t2)
 		self.state.free_slot_if_tmp(t1)
+
+		return node
 		
 
 	def visitUnaryOp(self, node: Node.UnaryOp):
-		pass
+		return node
 
 
 	def visitReturn(self, node: Node.Return):
@@ -281,6 +298,8 @@ class CodeGenerator(NodeVisitor):
 			self.state.current_procedure.instructions.append(
 				Instruction(InstrSet.ret, [])
 			)
+
+		return node
 
 
 	def visitCall(self, node: Node.Call):
@@ -317,9 +336,12 @@ class CodeGenerator(NodeVisitor):
 			for slot in slots:
 				self.state.free_slot_if_tmp(slot)
 
+		return node
+
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
 		self.builtin.handle(node)
+		return node
 
 
 	def visitContainer(self, node: Node.Container):

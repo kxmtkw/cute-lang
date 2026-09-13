@@ -125,7 +125,7 @@ class Node:
 
 class NodeVisitor(ABC):
 
-	def visit(self, node: NodeBase):
+	def visit(self, node: NodeBase) -> NodeBase:
 		method_name = f"visit{node.__class__.__name__}"
 		visitor_method = getattr(self, method_name, self._generic_visit)
 		return visitor_method(node)
@@ -138,73 +138,73 @@ class NodeVisitor(ABC):
 
 
 	@abstractmethod
-	def visitProgram(self, node: Node.Program):
+	def visitProgram(self, node: Node.Program) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitFunction(self, node: Node.Function):
+	def visitFunction(self, node: Node.Function) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitLiteral(self, node: Node.Literal):
+	def visitLiteral(self, node: Node.Literal) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitIdentifier(self, node: Node.Identifier):
+	def visitIdentifier(self, node: Node.Identifier) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitBlock(self, node: Node.Block):
+	def visitBlock(self, node: Node.Block) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitIf(self, node: Node.If):
+	def visitIf(self, node: Node.If) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitWhile(self, node: Node.While):
+	def visitWhile(self, node: Node.While) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitFor(self, node: Node.For):
+	def visitFor(self, node: Node.For) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitDeclaration(self, node: Node.Declaration):
+	def visitDeclaration(self, node: Node.Declaration) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitBinaryOp(self, node: Node.BinaryOp):
+	def visitBinaryOp(self, node: Node.BinaryOp) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitUnaryOp(self, node: Node.UnaryOp):
+	def visitUnaryOp(self, node: Node.UnaryOp) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitCall(self, node: Node.Call):
+	def visitCall(self, node: Node.Call) -> NodeBase:
 		pass
 
 
 	@abstractmethod
-	def visitReturn(self, node: Node.Return):
+	def visitReturn(self, node: Node.Return) -> NodeBase:
 		pass
 
 	@abstractmethod
-	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+	def visitBuiltinCommand(self, node: Node.BuiltinCommand) -> NodeBase:
 		pass
 
 	@abstractmethod
-	def visitContainer(self, node: Node.Container):
+	def visitContainer(self, node: Node.Container) -> NodeBase:
 		pass
