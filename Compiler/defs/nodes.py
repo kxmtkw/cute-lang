@@ -24,6 +24,7 @@ class Node:
 		body: "Node.Block"
 		return_type: Optional[str] = None
 		n_scope: NameScope = field(default_factory=NameScope)
+		c_proc_id: Optional[int] = None
 
 
 	@dataclass
@@ -73,6 +74,7 @@ class Node:
 		name: str
 		type: Optional[str]
 		value: Optional["Node.Expression"]
+		c_slot_id: Optional[int] = None
 
 
 	# true expressions
@@ -86,6 +88,7 @@ class Node:
 	@dataclass
 	class Identifier(Expression):
 		value: str
+		n_refers: Optional[NodeBase] = None
 
 
 	@dataclass

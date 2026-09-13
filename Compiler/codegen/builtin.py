@@ -64,7 +64,7 @@ class BuiltinHandler:
 			raise ValueError("Expected a fmt code for arg 1 of __builtin__ out.")
 
 		if isinstance(slot, Node.Identifier):
-			slot_num = self.state.get_variable_slot(slot.value)
+			slot_num = self._encode_instruction_argument(slot, Format.u8, 0)
 		else:
 			raise ValueError("Expected an identifier for arg 2 of __builtin__ out.")
 
@@ -102,19 +102,26 @@ class BuiltinHandler:
 		self.state.current_procedure.instructions.append(Instruction(instruction, encoded_arguments))
 
 
-	def _encode_instruction_argument(self, argument: Node.Expression, fmt: str, position: int):
+	def _encode_instruction_argument(self, argument: Node.Expression, fmt: Format, position: int):
+		
 		if isinstance(argument, Node.Identifier):
 			if fmt != Format.u8:
 				raise ValueError(
-					f"Argument {position} of __builtin__ instr must be a literal for format {fmt}."
+					f"Argument {position} of __builtin__ instr must be a literal for format {fmt.value}."
 				)
 
-			slot = self.state.get_variable_slot(argument.value)
-			if slot is None:
-				raise ValueError(f"Unknown variable for __builtin__ instr: {argument.value}")
-			return slot
+			assert argument.n_refers is not None
+			assert isinstance(argument.n_refers, Node.Declaration)
+			assert argument.n_refers.c_slot_id is not None
+			slot_num = argument.n_refers.c_slot_id
+			return slot_num
 
 		if isinstance(argument, Node.Literal):
-			return argument.value
+			if isinstance(argument.value, (int, float)):
+				return argument.value
+			if isinstance(argument.value, (bool)):
+				return int(argument.value)
+			if isinstance(argument.value, str):
+				return ord(argument.value)
 
 		raise ValueError(f"Argument {position} of __builtin__ instr must be an identifier or literal.")

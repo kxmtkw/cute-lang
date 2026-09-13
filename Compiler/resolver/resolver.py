@@ -8,6 +8,7 @@ class Resolver(NodeVisitor):
 
 	def __init__(self) -> None:
 		super().__init__()
+		self.in_builtin_context: bool = False
 		self.current_scope: NameScope
 
 
@@ -17,6 +18,9 @@ class Resolver(NodeVisitor):
 
 
 	def ascend_scope(self):
+		if self.current_scope.parent is None:
+			raise ValueError("No parent scope to ascend to.")
+		
 		self.current_scope = self.current_scope.parent
 
 
@@ -51,8 +55,9 @@ class Resolver(NodeVisitor):
 
 	def visitIdentifier(self, node: Node.Identifier):
 		found_node = self.current_scope.get(node.value, None)
-		if found_node is None:
+		if found_node is None and not self.in_builtin_context:
 			raise ValueError(f"Unknown identifier: {node.value}")
+		node.n_refers = found_node
 
 
 	def visitBlock(self, node: Node.Block):
@@ -119,11 +124,15 @@ class Resolver(NodeVisitor):
 
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
-		pass
+		# fix for now, we want the builtin handler to handle errors 
+		self.in_builtin_context = True
+		for arg in node.args:
+			self.visit(arg)
+		self.in_builtin_context = False
 
 	
 	def visitContainer(self, node: Node.Container):
 		self.current_scope[node.name] = node
 
-		for member in node.members:
+		for member in node.fields:
 			node.n_scope[member.name] = member

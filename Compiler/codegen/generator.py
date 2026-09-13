@@ -43,13 +43,24 @@ class CodeGenerator(NodeVisitor):
 		self.program = Program([], [])
 		self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
+
+	def assignProcedureId(self, func: Node.Function):
+		if func.name == "main":
+			proc_id = 0
+		else:
+			proc_id = self.state.get_procedure_id()
+
+		func.c_proc_id = proc_id
+
 	
 	def visitProgram(self, node: Node.Program):
+
 		for func in node.functions:
 			self.visit(func)
 
 		self.program.assemble(self.builder)
 		image = self.builder.compile()
+
 		with open(self.outpath, "wb") as file:
 			file.write(image)
 
@@ -57,7 +68,12 @@ class CodeGenerator(NodeVisitor):
 
 
 	def visitFunction(self, node: Node.Function):
-		proc = Procedure(self.state.get_procedure_id(node.name), len(node.params), [])
+
+		self.assignProcedureId(node)
+
+		assert node.c_proc_id is not None
+
+		proc = Procedure(node.c_proc_id, len(node.params), [])
 
 		self.state.new_procedure(proc)
 
@@ -75,43 +91,64 @@ class CodeGenerator(NodeVisitor):
 	def visitLiteral(self, node: Node.Literal):
 		slot = self.state.get_tmp_slot()
 
+		value: int | float
+
 		if slot is None:
 			raise ValueError()
 
 		match node.type:
 			case ExprLiteralType.Int:
 				instr = InstrSet.loadi32
+				value = int(node.value)
 			case ExprLiteralType.Float:
 				instr = InstrSet.loadf32
+				value = float(node.value)
 			case ExprLiteralType.Bool:
 				instr = InstrSet.loadbyte
-				node.value = 1 if node.value else 0
+				value = 1 if node.value else 0
 			case ExprLiteralType.Char:
 				instr = InstrSet.loadbyte
-				node.value = ord(node.value)
+				value = ord(str(node.value))
 			case ExprLiteralType.String:
 				raise ValueError("String literals are not supported yet.")
 
 		self.state.current_procedure.instructions.append(
-			Instruction(instr, [slot, node.value])
+			Instruction(instr, [slot, value])
 		)
 		
 		self.state.push_slot(slot)
 
 
 	def visitIdentifier(self, node: Node.Identifier):
-		slot = self.state.get_variable_slot(node.value)
-		if slot is None:
+
+		referred_node = node.n_refers
+		assert referred_node is not None
+
+		if isinstance(referred_node, Node.Declaration):
+			assert referred_node.c_slot_id is not None
+			self.state.push_slot(referred_node.c_slot_id)
+
+		elif isinstance(referred_node, Node.Function):
+			if referred_node.c_proc_id is None:
+				self.assignProcedureId(referred_node)
+
+			assert referred_node.c_proc_id is not None
+
 			slot = self.state.get_tmp_slot()
-			id = self.state.get_procedure_id(node.value)
+
+			assert slot is not None
+
 			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.loadu32, [slot, id])
+				Instruction(InstrSet.loadu32, [slot, referred_node.c_proc_id])
 			)
-		self.state.push_slot(slot)
+
+			self.state.push_slot(slot)
+
+		else:
+			raise ValueError(f"Identifier refers to {node.n_refers} which cannot be converted into any bytecode representative.")
 
 
 	def visitBlock(self, node: Node.Block):
-
 		for stmt in node.statements:
 			self.visit(stmt)
 
@@ -181,7 +218,9 @@ class CodeGenerator(NodeVisitor):
 	def visitDeclaration(self, node: Node.Declaration):
 
 		slot = self.state.get_slot()
-		self.state.set_variable_slot(node.name, slot)
+		assert slot is not None
+
+		node.c_slot_id = slot
 
 		if node.value is not None:
 			self.visit(node.value)
@@ -198,7 +237,6 @@ class CodeGenerator(NodeVisitor):
 		self.visit(node.left)
 		self.visit(node.right)
 
-		
 		t2 = self.state.pop_slot()
 		t1 = self.state.pop_slot()
 
@@ -208,6 +246,7 @@ class CodeGenerator(NodeVisitor):
 
 		elif node.op in INSTRUCTION_ENCODING_TABLE:
 			slot = self.state.get_tmp_slot()
+			assert slot is not None
 			instr = INSTRUCTION_ENCODING_TABLE[node.op]
 			operation = Instruction(instr, [slot, t1, t2])
 			self.state.current_procedure.instructions.append(operation)
@@ -215,6 +254,7 @@ class CodeGenerator(NodeVisitor):
 
 		elif node.op in CMP_INSTRUCTION_ENCODING_TABLE:
 			slot = self.state.get_tmp_slot()
+			assert slot is not None
 			instr = CMP_INSTRUCTION_ENCODING_TABLE[node.op]
 			self.state.current_procedure.instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
 			self.state.current_procedure.instructions.append(Instruction(instr, [slot]))
@@ -247,17 +287,24 @@ class CodeGenerator(NodeVisitor):
 
 		slots = self.state.get_continous_slots(len(node.args))
 
-		for i, arg in enumerate(node.args):
-			self.visit(arg)
-			expr_slot = self.state.pop_slot()
-			mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
-			self.state.current_procedure.instructions.append(mov)
-			self.state.free_slot_if_tmp(expr_slot)
+		if len(node.args) > 0:
+
+			assert slots is not None
+
+			for i, arg in enumerate(node.args):
+				self.visit(arg)
+				expr_slot = self.state.pop_slot()
+				mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
+				self.state.current_procedure.instructions.append(mov)
+				self.state.free_slot_if_tmp(expr_slot)
 
 		self.visit(node.callee)
+
 		callee_slot = self.state.pop_slot()
 		return_slot = self.state.get_tmp_slot()
-		arg_start_slot = slots[0]
+
+		assert return_slot is not None
+		arg_start_slot = slots[0] if slots is not None else 0
 
 		self.state.current_procedure.instructions.append(
 			Instruction(InstrSet.call, [callee_slot, arg_start_slot, return_slot])
@@ -265,12 +312,15 @@ class CodeGenerator(NodeVisitor):
 
 		self.state.push_slot(return_slot)
 		self.state.free_slot_if_tmp(callee_slot)
-		for slot in slots:
+
+		if slots is not None:
+			for slot in slots:
 				self.state.free_slot_if_tmp(slot)
 
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
 		self.builtin.handle(node)
+
 
 	def visitContainer(self, node: Node.Container):
 		return super().visitContainer(node)

@@ -112,6 +112,8 @@ class Parser:
 		else:
 			node = self.parse_expression()
 
+		self.eat_stmt_enders()
+
 		return node
 		
 
@@ -142,7 +144,11 @@ class Parser:
 
 		while True:
 
-			if self.expect_token_type(TokenType.EOL) or self.expect_token_type(TokenType.EOF) or self.peek().value in r.STATEMENT_ENDERS:
+			if self.expect_token_type(TokenType.EOL) or self.expect_token_type(TokenType.EOF):
+				self.backtrack()
+				return lhs
+
+			if self.peek().value in r.STATEMENT_ENDERS:
 				return lhs
 
 			symbol_token = self.expect_token_type(TokenType.Symbol, True)
