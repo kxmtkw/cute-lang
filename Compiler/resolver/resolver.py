@@ -1,4 +1,6 @@
+from Compiler.defs.node_base import NodeBase
 from Compiler.defs.nodes import Node, NodeVisitor
+from Compiler.defs.op import BinaryOpType
 from Compiler.defs.scope import NameScope
 
 
@@ -9,6 +11,7 @@ class Resolver(NodeVisitor):
 	def __init__(self) -> None:
 		super().__init__()
 		self.in_builtin_context: bool = False
+		self.callee_context: bool = False
 		self.current_scope: NameScope
 
 
@@ -126,6 +129,7 @@ class Resolver(NodeVisitor):
 
 	def visitCall(self, node: Node.Call):
 		self.visit(node.callee)
+
 		for arg in node.args:
 			self.visit(arg)
 
@@ -147,10 +151,28 @@ class Resolver(NodeVisitor):
 		return node
 
 	
-	def visitContainer(self, node: Node.Container):
+	def visitContainerDef(self, node: Node.ContainerDef):
 		self.current_scope[node.name] = node
 
 		for member in node.fields:
 			node.n_scope[member.name] = member
+
+		return node
+
+
+	def visitContainerImpl(self, node: Node.ContainerImpl):
+
+		if not self.current_scope.has(node.name):
+			raise ValueError("Container not found so can not be implemented")
+		
+		container = self.current_scope[node.name]
+
+		assert isinstance(container, Node.ContainerDef)
+
+		for method in node.methods:
+			# we also need to make sure here that any method name is not a field name
+			method.params.insert(0, Node.Declaration("this", container.name, value=None))
+			self.visit(method)
+			container.n_scope[method.name] = method
 
 		return node

@@ -149,7 +149,7 @@ class CodeGenerator(NodeVisitor):
 			self.state.push_slot(slot)
 
 		else:
-			raise ValueError(f"Identifier refers to {node.n_refers} which cannot be converted into any bytecode representative.")
+			raise RuntimeWarning(f"Identifier {node.value} refers to {node.n_refers} which cannot be converted into any bytecode representative.")
 
 		return node
 	
@@ -344,5 +344,9 @@ class CodeGenerator(NodeVisitor):
 		return node
 
 
-	def visitContainer(self, node: Node.Container):
-		return super().visitContainer(node)
+	def visitContainerDef(self, node: Node.ContainerDef):
+		return super().visitContainerDef(node)
+
+
+	def visitContainerImpl(self, node: Node.ContainerImpl):
+		return super().visitContainerImpl(node)

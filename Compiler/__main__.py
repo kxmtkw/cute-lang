@@ -24,10 +24,12 @@ def main():
 
 	parser = Parser(tokens)
 	program = parser.parse()
-	print(program.dump())
+
+	print("\n" + "-"*10 + "\n")
 
 	resolver = Resolver()
 	resolver.visit(program)
+	print(program.dump())
 
 	print("\n" + "-"*10 + "\n")
 

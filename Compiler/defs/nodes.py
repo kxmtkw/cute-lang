@@ -28,13 +28,18 @@ class Node:
 
 
 	@dataclass
-	class Container(NodeBase):
+	class ContainerDef(NodeBase):
 		name: str 
 		virtual: bool
 		fields: list["Node.Declaration"]
-		methods: list["Node.Function"] = field(default_factory=list)
 		n_scope: NameScope = field(default_factory=NameScope)
-		
+
+
+	@dataclass
+	class ContainerImpl(NodeBase):
+		name: str 
+		methods: list["Node.Function"]
+	
 
 	class Expression(NodeBase):
 		pass
@@ -90,7 +95,7 @@ class Node:
 		value: str
 		n_refers: Optional[NodeBase] = None
 
-
+		
 	@dataclass
 	class BinaryOp(Expression):
 		op: BinaryOpType
@@ -206,5 +211,9 @@ class NodeVisitor(ABC):
 		pass
 
 	@abstractmethod
-	def visitContainer(self, node: Node.Container) -> NodeBase:
+	def visitContainerDef(self, node: Node.ContainerDef) -> NodeBase:
+		pass
+
+	@abstractmethod
+	def visitContainerImpl(self, node: Node.ContainerImpl) -> NodeBase:
 		pass

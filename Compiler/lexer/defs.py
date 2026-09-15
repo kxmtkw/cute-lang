@@ -7,6 +7,7 @@ class KeywordType(Enum):
 	Return = "return"
 	Let = "let"
 	Container = "container"
+	Impl = "impl"
 	BoolTrue = "true"
 	BoolFalse = "false"
 	While = "while"

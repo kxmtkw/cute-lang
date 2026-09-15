@@ -84,6 +84,12 @@ class Parser:
 				nodes.append(func)
 				continue
 
+			if self.expect_keyword(KeywordType.Impl):
+				self.backtrack()
+				func = self.parse_impl()
+				nodes.append(func)
+				continue
+
 			raise ValueError(f"Unexpected token: {self.peek()}")
 		
 		program = Node.Program(nodes)
@@ -360,7 +366,7 @@ class Parser:
 		return Node.BuiltinCommand(args)
 
 
-	def parse_container(self) -> Node.Container:
+	def parse_container(self) -> Node.ContainerDef:
 
 		self.expect_keyword(KeywordType.Container)
 
@@ -369,7 +375,7 @@ class Parser:
 		name = name_token.extract(str)
 
 		if self.expect_symbol(SymbolType.Star):
-			return Node.Container(
+			return Node.ContainerDef(
 				name,
 				True,
 				[]
@@ -390,11 +396,37 @@ class Parser:
 				break
 			
 
-		return Node.Container(
+		return Node.ContainerDef(
 			name,
 			False,
 			fields
 		)
+
+
+	def parse_impl(self) -> Node.ContainerImpl:
+	
+		self.expect_keyword(KeywordType.Impl)
+
+		name_token = self.expect_token_type(TokenType.Word, True)
+		assert name_token is not None
+		name = name_token.extract(str)
+
+		self.expect_symbol(SymbolType.LBrace, True)
+
+		methods = []
+
+		while not self.expect_symbol(SymbolType.RBrace):
+			self.eat_stmt_enders()
+
+			method = self.parse_func()
+			methods.append(method)
 			
+			self.eat_stmt_enders()
+
+
+		return Node.ContainerImpl(
+			name,
+			methods
+		)
 
 
