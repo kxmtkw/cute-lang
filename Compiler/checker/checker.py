@@ -119,7 +119,7 @@ class Checker(NodeVisitor):
 		
 
 	def visitDeclaration(self, node: Node.Declaration):
-		
+
 		assert node.type
 		self.visit(node.type)
 
@@ -189,10 +189,16 @@ class Checker(NodeVisitor):
 		assert node.n_refers
 
 		for method in node.methods:
+			self.visit(method)
+			node.n_refers.methods.append(method)
+
+			if method.name == "__new__":
+				assert method.return_type.t_type is node.n_refers
+				continue
+
 			identifier = Node.Identifier(node.n_refers.name)
 			identifier.n_refers = node.n_refers
 			method.params.insert(0, Node.Declaration("this", identifier, value=None))
-			self.visit(method)
-			node.n_refers.methods.append(method)
+			
 
 		return node

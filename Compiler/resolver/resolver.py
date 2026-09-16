@@ -155,6 +155,7 @@ class Resolver(NodeVisitor):
 		self.current_scope[node.name] = node
 
 		for member in node.fields:
+			self.visit(member)
 			node.n_scope[member.name] = member
 
 		return node
