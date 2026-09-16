@@ -13,73 +13,94 @@ class Node:
 
 	@dataclass
 	class Program(NodeBase):
-		functions: List["Node.Function"]
+		artifacts: List[Node.Artifact]
 		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
-	class Function(NodeBase):
+	class Artifact(NodeBase):
+		pass
+
+
+	@dataclass
+	class Function(Artifact):
 		name: str
 		params: List["Node.Declaration"]
 		body: "Node.Block"
-		return_type: Optional[str] = None
+		return_type: Optional[Node.Expression] = None
 		n_scope: NameScope = field(default_factory=NameScope)
 		c_proc_id: Optional[int] = None
 
 
 	@dataclass
-	class ContainerDef(NodeBase):
+	class Container(Artifact):
 		name: str 
 		virtual: bool
-		fields: list["Node.Declaration"]
+		fields: list[Node.Declaration]
+		methods: list[Node.Function] = field(default_factory=list)
 		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
-	class ContainerImpl(NodeBase):
+	class ContainerImpl(Artifact):
 		name: str 
 		methods: list["Node.Function"]
+		n_refers: Optional[Node.Container] = None
 	
 
-	class Expression(NodeBase):
+	class Statement(NodeBase):
 		pass
 
 
-	# Statement expressions
+	class Expression(Statement):
+		t_type: Optional[Node.Container] = None
+		# indicates the type of the expression.
+		# for identifiers, it simply:
+		# - inherits from a declaration
+		# - points to a container def
+		# - points to a function
+
+
+	# Statements
 
 	@dataclass
-	class Block(Expression):
-		statements: List["Node.Expression"]
+	class Block(Statement):
+		statements: List[Node.Statement]
 		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
-	class If(Expression):
-		condition: "Node.Expression"
-		then_branch: "Node.Block"
-		else_branch: Optional["Node.Expression"]
+	class If(Statement):
+		condition: Node.Expression
+		then_branch: Node.Statement
+		else_branch: Optional[Node.Statement] = None
 
 
 	@dataclass
-	class While(Expression):
-		condition: "Node.Expression"
-		body: "Node.Block"
+	class While(Statement):
+		condition: Node.Expression
+		body: Node.Statement
 
 
 	@dataclass
-	class For(Expression):
-		init: "Node.Expression"
-		condition: "Node.Expression"
-		step: "Node.Expression"
-		body: "Node.Block"
+	class For(Statement):
+		init: Node.Statement
+		condition: Node.Expression
+		step: Node.Expression
+		body: Node.Statement
 
 
 	@dataclass
-	class Declaration(Expression):
+	class Declaration(Statement):
 		name: str
-		type: Optional[str]
-		value: Optional["Node.Expression"]
+		type: Optional[Node.Expression] # t_type of this is the type of the varible
+		value: Optional[Node.Expression]
 		c_slot_id: Optional[int] = None
+
+
+	@dataclass
+	class BuiltinCommand(Statement):
+		args: list[Node.Identifier]
 
 
 	# true expressions
@@ -87,7 +108,7 @@ class Node:
 	@dataclass
 	class Literal(Expression):
 		value: Union[int, float, str, bool]
-		type: ExprLiteralType
+		literal_type: ExprLiteralType
 
 
 	@dataclass
@@ -95,40 +116,34 @@ class Node:
 		value: str
 		n_refers: Optional[NodeBase] = None
 
-		
+
 	@dataclass
 	class BinaryOp(Expression):
 		op: BinaryOpType
-		left: "Node.Expression"
-		right: "Node.Expression"
+		left: Node.Expression
+		right: Node.Expression
 
 
 	@dataclass
 	class UnaryOp(Expression):
 		op: UnaryOpType
-		operand: "Node.Expression"
+		operand: Node.Expression
 
 
 	@dataclass
 	class Call(Expression):
-		callee: "Node.Expression" 
-		args: List["Node.Expression"]
+		callee: Node.Expression # t_type of this should a function, raise error otherwise.
+		args: List[Node.Expression]
 
 
 	@dataclass
 	class Return(Expression):
-		value: Optional["Node.Expression"] = None
-
-
-	@dataclass
-	class BuiltinCommand(Expression):
-		args: list["Node.Identifier"]
-
-
+		value: Optional[Node.Expression] = None
 
 
 
 class NodeVisitor(ABC):
+
 
 	def visit(self, node: NodeBase) -> NodeBase:
 		method_name = f"visit{node.__class__.__name__}"
@@ -211,7 +226,7 @@ class NodeVisitor(ABC):
 		pass
 
 	@abstractmethod
-	def visitContainerDef(self, node: Node.ContainerDef) -> NodeBase:
+	def visitContainer(self, node: Node.Container) -> NodeBase:
 		pass
 
 	@abstractmethod

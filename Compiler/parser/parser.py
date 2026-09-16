@@ -97,7 +97,7 @@ class Parser:
 		return program
 
 
-	def parse_statement(self) -> Node.Expression:
+	def parse_statement(self) -> Node.Statement:
 
 		self.eat_stmt_enders()
 
@@ -264,7 +264,7 @@ class Parser:
 		else:
 			value = None
 
-		return Node.Declaration(name, decl_type, value)
+		return Node.Declaration(name, Node.Identifier(decl_type) if decl_type else None, value)
 
 
 	def parse_if(self) -> Node.If:
@@ -349,7 +349,7 @@ class Parser:
 
 		body = self.parse_block()
 
-		return Node.Function(name, params, body, return_type)
+		return Node.Function(name, params, body, Node.Identifier(return_type) if return_type else None)
 
 
 	def parse_builtin(self) -> Node.BuiltinCommand:
@@ -366,7 +366,7 @@ class Parser:
 		return Node.BuiltinCommand(args)
 
 
-	def parse_container(self) -> Node.ContainerDef:
+	def parse_container(self) -> Node.Container:
 
 		self.expect_keyword(KeywordType.Container)
 
@@ -375,7 +375,7 @@ class Parser:
 		name = name_token.extract(str)
 
 		if self.expect_symbol(SymbolType.Star):
-			return Node.ContainerDef(
+			return Node.Container(
 				name,
 				True,
 				[]
@@ -396,7 +396,7 @@ class Parser:
 				break
 			
 
-		return Node.ContainerDef(
+		return Node.Container(
 			name,
 			False,
 			fields

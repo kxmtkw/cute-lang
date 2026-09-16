@@ -24,7 +24,7 @@ class NameScope:
 		raise KeyError(key)
 
 
-	def get(self, key: str, default: Optional[NodeBase]):
+	def get(self, key: str, default: Optional[NodeBase]) -> NodeBase | None:
 		if key in self._defintions:
 			return self._defintions[key]
 

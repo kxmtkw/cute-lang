@@ -55,8 +55,8 @@ class CodeGenerator(NodeVisitor):
 	
 	def visitProgram(self, node: Node.Program):
 
-		for func in node.functions:
-			self.visit(func)
+		for artif in node.artifacts:
+			self.visit(artif)
 
 		self.program.assemble(self.builder)
 		image = self.builder.compile()
@@ -99,7 +99,7 @@ class CodeGenerator(NodeVisitor):
 		if slot is None:
 			raise ValueError()
 
-		match node.type:
+		match node.literal_type:
 			case ExprLiteralType.Int:
 				instr = InstrSet.loadi32
 				value = int(node.value)
@@ -344,8 +344,8 @@ class CodeGenerator(NodeVisitor):
 		return node
 
 
-	def visitContainerDef(self, node: Node.ContainerDef):
-		return super().visitContainerDef(node)
+	def visitContainer(self, node: Node.Container):
+		return super().visitContainer(node)
 
 
 	def visitContainerImpl(self, node: Node.ContainerImpl):

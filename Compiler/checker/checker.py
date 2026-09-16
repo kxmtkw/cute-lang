@@ -1,3 +1,6 @@
+from typing import Optional
+
+from Compiler.defs.expr import ExprLiteralType
 from Compiler.defs.node_base import NodeBase
 from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.defs.op import BinaryOpType
@@ -5,13 +8,12 @@ from Compiler.defs.scope import NameScope
 
 
 
-class Resolver(NodeVisitor):
+class Checker(NodeVisitor):
 
 
 	def __init__(self) -> None:
 		super().__init__()
-		self.in_builtin_context: bool = False
-		self.callee_context: bool = False
+		self.current_function_return_type: Optional[Node.Container]
 		self.current_scope: NameScope
 
 
@@ -37,18 +39,17 @@ class Resolver(NodeVisitor):
 
 
 	def visitFunction(self, node: Node.Function):
-
-		if self.current_scope.has(node.name):
-			raise ValueError(f"Redefinition of function: {node.name}")
 		
-		self.current_scope[node.name] = node
-
 		self.descend_scope(node.n_scope)
 
 		for decl in node.params:
 			self.visit(decl)
 
+		assert node.return_type
 		self.visit(node.return_type)
+
+		self.current_function_return_type = node.return_type.t_type
+
 		self.visit(node.body)
 
 		self.ascend_scope()
@@ -57,14 +58,31 @@ class Resolver(NodeVisitor):
 
 
 	def visitLiteral(self, node: Node.Literal):
+		if node.literal_type == ExprLiteralType.Int:
+			node.t_type = self.current_scope.get("int", None)
+		elif node.literal_type == ExprLiteralType.Float:
+			node.t_type = self.current_scope.get("float", None)
 		return node
 
 
 	def visitIdentifier(self, node: Node.Identifier):
-		found_node = self.current_scope.get(node.value, None)
-		if found_node is None and not self.in_builtin_context:
-			raise ValueError(f"Unknown identifier: {node.value}")
-		node.n_refers = found_node
+
+		assert node.n_refers
+
+		if isinstance(node.n_refers, Node.Declaration):
+			assert node.n_refers.type
+			node.t_type = node.n_refers.type.t_type
+
+		elif isinstance(node.n_refers, Node.Container):
+			node.t_type = node.n_refers
+
+		elif isinstance(node.n_refers, Node.Function):
+			node.t_type = node.n_refers.return_type.t_type
+
+		else:
+			raise ValueError(f"Identifier {node.value} refers to unsupported thing {node.n_refers}")
+
+		
 		return node
 
 
@@ -101,17 +119,17 @@ class Resolver(NodeVisitor):
 		
 
 	def visitDeclaration(self, node: Node.Declaration):
+		
+		assert node.type
+		self.visit(node.type)
 
-		if self.current_scope.has(node.name):
-			raise ValueError(f"Identifier already defined within scope: {node.name}")
-
-		if node.type is not None:
-			self.visit(node.type)
-
-		self.current_scope[node.name] = node
+		assert node.type.t_type
 
 		if node.value is not None:
 			self.visit(node.value)
+
+			if node.type.t_type is not node.value.t_type:
+				raise TypeError(f"Expected {node.type.t_type.name}, got {node.value.t_type.name}")
 
 		return node
 
@@ -119,6 +137,12 @@ class Resolver(NodeVisitor):
 	def visitBinaryOp(self, node: Node.BinaryOp):
 		self.visit(node.left)
 		self.visit(node.right)
+
+		if node.left.t_type is not node.right.t_type:
+			raise ValueError()
+
+		node.t_type = node.left.t_type
+		
 		return node
 
 
@@ -133,47 +157,42 @@ class Resolver(NodeVisitor):
 		for arg in node.args:
 			self.visit(arg)
 
+		node.t_type = node.callee.t_type
 		return node
 
 
 	def visitReturn(self, node: Node.Return):
 		if node.value is not None:
 			self.visit(node.value)
+			if self.current_function_return_type is not node.value.t_type:
+				raise ValueError("Function returns the wrong type.")
 		return node
 
 
 	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
-		# fix for now, we want the builtin handler to handle errors 
-		self.in_builtin_context = True
-		for arg in node.args:
-			self.visit(arg)
-		self.in_builtin_context = False
 		return node
 
 	
 	def visitContainer(self, node: Node.Container):
-		self.current_scope[node.name] = node
 
-		for member in node.fields:
-			node.n_scope[member.name] = member
+		if node.virtual:
+			return node
+
+		for field in node.fields:
+			self.visit(field)
 
 		return node
 
 
 	def visitContainerImpl(self, node: Node.ContainerImpl):
 
-		if not self.current_scope.has(node.name):
-			raise ValueError("Container not found so can not be implemented")
-		
-		container = self.current_scope[node.name]
-
-		assert isinstance(container, Node.Container)
-
-		node.n_refers = container
+		assert node.n_refers
 
 		for method in node.methods:
-			# we also need to make sure here that any method name is not a field name
+			identifier = Node.Identifier(node.n_refers.name)
+			identifier.n_refers = node.n_refers
+			method.params.insert(0, Node.Declaration("this", identifier, value=None))
 			self.visit(method)
-			container.n_scope[method.name] = method
+			node.n_refers.methods.append(method)
 
 		return node
