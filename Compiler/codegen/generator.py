@@ -152,7 +152,7 @@ class CodeGenerator(NodeVisitor):
 			raise RuntimeWarning(f"Identifier {node.value} refers to {node.n_refers} which cannot be converted into any bytecode representative.")
 
 		return node
-	
+
 
 	def visitBlock(self, node: Node.Block):
 		for stmt in node.statements:

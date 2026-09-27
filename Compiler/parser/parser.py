@@ -1,4 +1,5 @@
 from Compiler.defs.expr import ExprLiteralType
+from Compiler.defs.op import BinaryOpType
 from Compiler.lexer.defs import KeywordType, SymbolType, Token, TokenType
 
 from Compiler.defs.nodes import Node
@@ -179,7 +180,7 @@ class Parser:
 			if prev_bp > l_bp:
 				self.backtrack()
 				return lhs
-
+			
 			lhs = Node.BinaryOp(
 				operation,
 				lhs,
@@ -339,17 +340,16 @@ class Parser:
 			self.expect_symbol(SymbolType.Comma, False)
 
 
-		if self.expect_symbol(SymbolType.Arrow):
-			return_type = self.expect_token_type(TokenType.Word, True)
-			return_type = return_type.extract(str) if return_type is not None else None
-		else:
-			return_type = None
+		self.expect_symbol(SymbolType.Arrow, True)
+		return_type = self.expect_token_type(TokenType.Word, True)
+		assert return_type
+		return_type = return_type.extract(str)
 
 		self.eat_stmt_enders()
 
 		body = self.parse_block()
 
-		return Node.Function(name, params, body, Node.Identifier(return_type) if return_type else None)
+		return Node.Function(name, params, body, Node.Identifier(return_type))
 
 
 	def parse_builtin(self) -> Node.BuiltinCommand:

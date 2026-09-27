@@ -170,7 +170,7 @@ class Resolver(NodeVisitor):
 
 		assert isinstance(container, Node.Container)
 
-		node.n_refers = container
+		node.n_container = container
 
 		for method in node.methods:
 			# we also need to make sure here that any method name is not a field name

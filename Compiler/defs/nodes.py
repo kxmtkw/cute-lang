@@ -21,13 +21,17 @@ class Node:
 	class Artifact(NodeBase):
 		pass
 
+	@dataclass
+	class SupportArtifact(NodeBase):
+		pass
+
 
 	@dataclass
 	class Function(Artifact):
 		name: str
-		params: List["Node.Declaration"]
-		body: "Node.Block"
-		return_type: Optional[Node.Expression] = None
+		params: List[Node.Declaration]
+		body: Node.Block
+		return_type: Node.Expression
 		n_scope: NameScope = field(default_factory=NameScope)
 		c_proc_id: Optional[int] = None
 
@@ -42,10 +46,10 @@ class Node:
 
 
 	@dataclass
-	class ContainerImpl(Artifact):
+	class ContainerImpl(SupportArtifact):
 		name: str 
 		methods: list["Node.Function"]
-		n_refers: Optional[Node.Container] = None
+		n_container: Optional[Node.Container] = None
 	
 
 	class Statement(NodeBase):
@@ -53,13 +57,7 @@ class Node:
 
 
 	class Expression(Statement):
-		t_type: Optional[Node.Container] = None
-		# indicates the type of the expression.
-		# for identifiers, it simply:
-		# - inherits from a declaration
-		# - points to a container def
-		# - points to a function
-
+		pass
 
 	# Statements
 
@@ -93,7 +91,7 @@ class Node:
 	@dataclass
 	class Declaration(Statement):
 		name: str
-		type: Optional[Node.Expression] # t_type of this is the type of the varible
+		type: Optional[Node.Expression]
 		value: Optional[Node.Expression]
 		c_slot_id: Optional[int] = None
 
@@ -132,7 +130,7 @@ class Node:
 
 	@dataclass
 	class Call(Expression):
-		callee: Node.Expression # t_type of this should a function, raise error otherwise.
+		callee: Node.Expression
 		args: List[Node.Expression]
 
 
@@ -175,7 +173,6 @@ class NodeVisitor(ABC):
 	@abstractmethod
 	def visitIdentifier(self, node: Node.Identifier) -> NodeBase:
 		pass
-
 
 	@abstractmethod
 	def visitBlock(self, node: Node.Block) -> NodeBase:
