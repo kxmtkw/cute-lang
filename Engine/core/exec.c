@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "image/instr.h"
 
 #include "common/atom.h"
+#include "common/instr.h"
 #include "common/config.h"
 #include "common/error.h"
 

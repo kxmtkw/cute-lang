@@ -8,8 +8,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "image/instr.h"
-
 #include "common/atom.h"
 #include "common/config.h"
 #include "common/error.h"

@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "image/instr.h"
 
 #include "common/atom.h"
 #include "common/config.h"
+#include "common/instr.h"
 #include "common/error.h"
 
 #include "objects/manager.h"

@@ -7,7 +7,6 @@
 #include <threads.h>
 
 #include "image/image.h"
-#include "image/instr.h"
 
 #include "common/atom.h"
 #include "common/config.h"

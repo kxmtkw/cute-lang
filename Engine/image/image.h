@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "image/instr.h"
+#include "common/instr.h"
 
 // Versioning
 

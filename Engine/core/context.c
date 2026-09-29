@@ -6,8 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "image/instr.h"
-
 #include "common/atom.h"
 #include "common/config.h"
 #include "common/error.h"

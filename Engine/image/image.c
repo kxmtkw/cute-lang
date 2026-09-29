@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "image/instr.h"
+#include "common/instr.h"
 #include "image/image.h"
 
 
