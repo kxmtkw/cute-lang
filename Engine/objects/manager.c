@@ -79,7 +79,7 @@ ct_objects_new_bucket(CtObjectManager* manager) {
 	CtObjectBucket* bucket = malloc(sizeof(CtObjectBucket));
 
 	if (bucket == NULL) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Objects",
 			"BucketAllocation",
@@ -168,7 +168,7 @@ ct_objects_new_object(CtObjectManager* manager, uint32_t size, uint64_t type, Ct
 	if (obj == NULL) {
 		ct_utils_clear_bit(&assigned_bucket->bitmask, assigned_obj_slot);
 
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Objects",
 			"OutOfMemory",

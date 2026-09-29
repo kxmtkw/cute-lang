@@ -64,7 +64,7 @@ CtTypedAtom
 ct_container_get(CtObjectManager* manager, CtContainer* obj, uint32_t index) {
 
 	if (index >= obj->size) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Container",
 			"Access",
@@ -81,7 +81,7 @@ void
 ct_container_set(CtObjectManager* manager, CtContainer* obj, uint32_t index, CtTypedAtom atom) {
 
 	if (index >= obj->size) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Container",
 			"Access",

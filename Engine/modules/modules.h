@@ -36,7 +36,7 @@ static inline int32_t
 ct_modules_get_method(uint32_t module_id, uint32_t method_id, CtModuleMethodEntry* entry) {
 
 	if (module_id >= ct_modules_count) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Modules",
 			"ModuleNotFound",
@@ -49,7 +49,7 @@ ct_modules_get_method(uint32_t module_id, uint32_t method_id, CtModuleMethodEntr
 	const CtModuleMethodEntry* module_map = ct_modules_dispatch_map[module_id];
 
 	if (module_map == NULL) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Modules",
 			"ModuleNotFound",
@@ -60,7 +60,7 @@ ct_modules_get_method(uint32_t module_id, uint32_t method_id, CtModuleMethodEntr
 	};
 
 	if (method_id >= ct_modules_method_count[module_id]) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error,
 			"Modules",
 			"MethodNotFoung",

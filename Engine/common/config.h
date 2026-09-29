@@ -3,7 +3,7 @@
 
 /* 
 
-Cute Runtime configuration options. Can customize these to change the behavior of the runtime
+Cute Engine configuration options. Can customize these to change the behavior of the engine
 
 */
 
@@ -13,13 +13,13 @@ Cute Runtime configuration options. Can customize these to change the behavior o
 // Whether to fail on the 0x00 instruction or just to ignore it.
 #define CT_CONF_FAIL_ON_NULL
 
-// Base Domain for all errors occurring inside the runtime.
+// Base Domain for all errors occurring inside the engine.
 #define CT_CONF_INTERNAL_ERROR_DOMAIN "Cute"
 
 /*
 Whether to run in debug mode or not.
 For now, debug mode offers:
-- Rich logs for each and every subsystem of the runtime.
+- Rich logs for each and every subsystem of the engine.
 */
 // #define CT_CONF_DEBUG
 

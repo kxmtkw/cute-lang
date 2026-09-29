@@ -6,7 +6,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "CuteInstr.h"
+#include "image/instr.h"
 
 #include "common/atom.h"
 #include "common/config.h"
@@ -87,9 +87,9 @@ ct_ctx_call_procedure(CtContext* ctx, uint32_t procedure_id, uint8_t arg_start_s
 
 	if (ctx->callstack.size >= CT_CONF_CALLSTACK_SIZE) {
 		
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error, 
-			"Runtime", 
+			"Engine", 
 			"RecursionDepth", 
 			"Recursion depth reached. Too many calls. (%u)", CT_CONF_CALLSTACK_SIZE
 		);
@@ -99,9 +99,9 @@ ct_ctx_call_procedure(CtContext* ctx, uint32_t procedure_id, uint8_t arg_start_s
 
 	if (procedure_id >= ctx->image->header.procedure_count) {
 
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error, 
-			"Runtime", 
+			"Engine", 
 			"InvalidProcedure", 
 			"Procedure %u does not exist.", procedure_id
 		);
@@ -114,9 +114,9 @@ ct_ctx_call_procedure(CtContext* ctx, uint32_t procedure_id, uint8_t arg_start_s
 
 	if (arg_count >= CT_CONF_FIXED_SLOT_COUNT) {
 		
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error, 
-			"Runtime", 
+			"Engine", 
 			"TooManyArguments", 
 			"Too many arguments requested by procedure(%u): '%u' (>=%u)", procedure_id, arg_count, CT_CONF_FIXED_SLOT_COUNT
 		);
@@ -196,9 +196,9 @@ ct_ctx_modcall(CtContext* ctx, uint32_t module_id, uint32_t method_id, uint8_t a
 	CT_LOG("context", "Calling module method: %u.%u with %u arguments starting from slot %u. Returning to slot %u.\n", module_id, method_id, entry.argument_count, arg_start_slot, return_slot);
 
 	if (arg_start_slot + entry.argument_count > 255) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error, 
-			"Runtime", 
+			"Engine", 
 			"FaultyAlignment", 
 			"Module method: %u.%u expected %u arguments. Cannot use arguments starting from slot %u.", module_id, method_id, entry.argument_count, arg_start_slot
 		);
@@ -235,9 +235,9 @@ const uint8_t*
 ct_ctx_read_data(CtContext* ctx, uint32_t index) {
 
 	if (index >= ctx->image->header.data_blob_size) {
-		CT_ERROR_RUNTIME(
+		CT_ERROR_ENGINE(
 			ct_thread_error, 
-			"Runtime", 
+			"Engine", 
 			"InvalidAccess", 
 			"Cannot access data.", NULL
 		);

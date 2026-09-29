@@ -42,7 +42,7 @@ typedef struct {
 // Short hand for getting a primitive. CtModuleMethodArguments must be args, and CtModuleMethodResult must be result. 
 #define CT_MODCALL_PRIMIT_ARG(INDEX, TYPE, NAME, ACCESSOR) \
 if (args.argument_types[INDEX] != CT_ATOM_PRIMITIVE) { \
-	CT_ERROR_RUNTIME( \
+	CT_ERROR_ENGINE( \
 		ct_thread_error, \
 		"Module", \
 		"TypeMismatch", \
@@ -56,7 +56,7 @@ TYPE NAME = (TYPE) (args.argument_atoms[INDEX].ACCESSOR); \
 // Short hand for getting an object. CtModuleMethodArguments must be args, and CtModuleMethodResult must be result. 
 #define CT_MODCALL_OBJECT_ARG(INDEX, TYPE, NAME) \
 if (args.argument_types[INDEX] != CT_ATOM_OBJECT) { \
-	CT_ERROR_RUNTIME( \
+	CT_ERROR_ENGINE( \
 		ct_thread_error, \
 		"Module", \
 		"TypeMismatch", \
@@ -70,7 +70,7 @@ TYPE NAME = (TYPE) (args.argument_atoms[INDEX].as_object); \
 
 #define CT_MODCALL_OBJECT_TYPE_CHECK(VAR, TYPEHASH, NAME) \
 if (!ct_object_check_type((CtObject*) VAR, TYPEHASH)) { \
-	CT_ERROR_RUNTIME( \
+	CT_ERROR_ENGINE( \
 		ct_thread_error, \
 		"Module", \
 		"TypeMismatch", \

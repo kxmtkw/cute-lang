@@ -3,7 +3,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "CuteInstr.h"
+#include "image/instr.h"
+#include "image/image.h"
 
 
 void 

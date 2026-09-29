@@ -6,7 +6,8 @@
 #include <stdint.h>
 #include <threads.h>
 
-#include "CuteInstr.h"
+#include "image/image.h"
+#include "image/instr.h"
 
 #include "common/atom.h"
 #include "common/config.h"

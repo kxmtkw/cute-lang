@@ -1,6 +1,6 @@
 from zero import *
 
-C_STANDARD = Flags.gcc.std_c17
+C_STANDARD = Flags.gcc.std_c11
 
 # Options
 
@@ -20,35 +20,25 @@ build.export_compile_commands = True
 
 
 # Cute Engine
+src = Path("Engine")
 
-CuteRuntime = StaticLibrary()
+cute = Executable()
 
-src = Path("Runtime")
-CuteRuntime.headers.public = src / "include"
-CuteRuntime.headers.private = src
+cute.headers.private = src
 
-CuteRuntime.source = Source(
+cute.source = Source(
+	src / "main" / "main.c",
 	src / "core" / "core.c",
 	src / "core" / "exec.c",
 	src / "core" / "context.c",
-
 	src / "image" / "image.c",
-
 	src / "objects" / "manager.c",
 	src / "container" / "container.c",
 	src / "utils" / "utils.c",
-
 	src / "lib" / "buffer.c",
 )
 
 if DEBUG:
-	CuteRuntime.arguments = Flags.Macro("CT_CONF_DEBUG"), C_STANDARD
+	cute.arguments = Flags.Macro("CT_CONF_DEBUG"), C_STANDARD
 else:
-	CuteRuntime.arguments = C_STANDARD
-
-
-# cute binary
-
-cute = Executable()
-cute.source = Source("main/runtime.c")
-cute.link(CuteRuntime)
+	cute.arguments = C_STANDARD

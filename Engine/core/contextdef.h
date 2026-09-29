@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "CuteInstr.h"
+#include "image/instr.h"
 
 #include "common/atom.h"
 #include "common/config.h"
