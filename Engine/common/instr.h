@@ -87,13 +87,15 @@ typedef enum {
     CT_INSTR_CALL         = 0xB0,
     CT_INSTR_RETURN       = 0xB1,
     CT_INSTR_RETURN_VAL   = 0xB2,
-    CT_INSTR_MOD_CALL     = 0xBA,
 
-    CT_INSTR_CON_NEW      = 0xC0,
-    CT_INSTR_CON_GET      = 0xC1,
-    CT_INSTR_CON_SET      = 0xC2,
-    CT_INSTR_CON_SIZE     = 0xC3,
-    CT_INSTR_CON_COPY     = 0xC4,
+    CT_INSTR_OBJ_CREATE     = 0xC0,
+    CT_INSTR_OBJ_SIZE       = 0xC1,
+    CT_INSTR_OBJ_GET        = 0xC2,
+    CT_INSTR_OBJ_SET        = 0xC3,
+	CT_INSTR_OBJ_GET_BYTE   = 0xC4,
+	CT_INSTR_OBJ_SET_BYTE   = 0xC5,
+	CT_INSTR_OBJ_RESIZE     = 0xC6,
+	CT_INSTR_OBJ_COPY       = 0xC7,
 
 } CtInstr;
 
