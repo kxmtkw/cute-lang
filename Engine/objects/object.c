@@ -48,6 +48,8 @@ ct_obj_mgr_new_bucket(CtObjectManager* mgr) {
 
 	mgr->buckets_list[mgr->bucket_count++] = bucket;
 
+	CT_LOG("objects", "New bucket (%u) [%p] created.", bucket->id, bucket);
+
 	return bucket;
 }
 
@@ -57,6 +59,8 @@ ct_obj_init_mgr(CtObjectManager* mgr) {
 	mgr->bucket_list_cap = 8;
 	mgr->buckets_list = malloc(sizeof(CtObjectBucket*) * 8);
 	mgr->empty_buckets_stack = NULL;
+
+	CT_LOG("objects", "Initialized object manager.");
 }
 
 // End the Object manager and all its resources.
@@ -115,6 +119,8 @@ ct_obj_create(CtObjectManager* mgr, uint32_t size) {
 		.types = types
 	};
 
+	CT_LOG("objects", "Object (%u.%u) [%p] allocated. size = %u atoms.\n", obj->bucket->id, obj->id, obj, obj->size);
+
 	return obj;
 }
 
@@ -131,7 +137,7 @@ ct_obj_delete(CtObjectManager* mgr, CtObject* obj) {
 
 	ct_utils_clear_bit(&bucket->bitmask, obj->id);
 
-	CT_LOG("objects", "Object (%u.%u) [%p] unallocated.\n", obj->id, obj->bucket->id, obj);
+	CT_LOG("objects", "Object (%u.%u) [%p] unallocated.\n", obj->bucket->id, obj->id, obj);
 
 	free(obj->atoms);
 	free(obj->types);
@@ -219,8 +225,12 @@ ct_obj_set_byte(CtObjectManager* manager, CtObject* obj, uint32_t index, uint8_t
 // Resize an object.
 void
 ct_obj_resize(CtObjectManager* manager, CtObject* obj, uint32_t new_size) {
+
 	obj->atoms = realloc(obj->atoms, new_size * sizeof(CtAtom));
 	obj->types = realloc(obj->types, new_size * sizeof(CtAtomTypeSize));
+
+	CT_LOG("objects", "Object (%u.%u) [%p] resized %u -> %u atoms.\n", obj->bucket->id, obj->id, obj, obj->size, new_size);
+
 	obj->size = new_size;
 }
 
