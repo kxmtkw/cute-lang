@@ -91,14 +91,14 @@ ct_obj_copy(CtObjectManager* manager, CtObject* obj);
 static inline void
 ct_obj_inc_ref(CtObjectManager* mgr, CtObject* obj) {
 	obj->ref_count++;
-	CT_LOG("objects", "Object (%u.%u) [%p] referenced. References: %u\n", obj->bucket_id, obj->bucket_index, obj, obj->ref_count);
+	CT_LOG("objects", "Object (%u.%u) [%p] referenced. References: %u\n", obj->id, obj->bucket->id, obj, obj->ref_count);
 }
 
 // Decrease the ref count of an object. Returns true if the object is deleted.
 static inline bool
 ct_obj_dec_ref(CtObjectManager* mgr, CtObject* obj) {
 	obj->ref_count--;
-	CT_LOG("objects", "Object (%u.%u) [%p] dereferenced. References: %u\n", obj->bucket_id, obj->bucket_index, obj, obj->ref_count);
+	CT_LOG("objects", "Object (%u.%u) [%p] dereferenced. References: %u\n", obj->id, obj->bucket->id, obj, obj->ref_count);
 	if (obj->ref_count == 0) {
 		ct_obj_delete(mgr, obj);
 		return true;

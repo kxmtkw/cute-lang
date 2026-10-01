@@ -35,8 +35,8 @@ For example, if one is working on the object manager, and the rest of the logs a
 #define CT_LOG(DOMAIN, ...) \
     do { \
 		if (CT_CONF_LOG_FILTER(DOMAIN)) {\
-			printf("[LOG] (%s) ", DOMAIN); \
-			printf(__VA_ARGS__); \
+			fprintf(stderr, "[LOG] (%s) ", DOMAIN); \
+			fprintf(stderr, __VA_ARGS__); \
 		} \
     } while (0)
 

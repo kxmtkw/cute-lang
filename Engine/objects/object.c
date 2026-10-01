@@ -53,6 +53,8 @@ ct_obj_mgr_new_bucket(CtObjectManager* mgr) {
 
 void
 ct_obj_init_mgr(CtObjectManager* mgr) {
+	mgr->bucket_count = 0;
+	mgr->bucket_list_cap = 8;
 	mgr->buckets_list = malloc(sizeof(CtObjectBucket*) * 8);
 	mgr->empty_buckets_stack = NULL;
 }
@@ -129,7 +131,7 @@ ct_obj_delete(CtObjectManager* mgr, CtObject* obj) {
 
 	ct_utils_clear_bit(&bucket->bitmask, obj->id);
 
-	CT_LOG("objects", "Object (%u.%u) [%p] unallocated.\n", obj->bucket_id, obj->bucket_index, obj);
+	CT_LOG("objects", "Object (%u.%u) [%p] unallocated.\n", obj->id, obj->bucket->id, obj);
 
 	free(obj);
 }

@@ -32,10 +32,8 @@ cute.source = Source(
 	src / "core" / "exec.c",
 	src / "core" / "context.c",
 	src / "image" / "image.c",
-	src / "objects" / "manager.c",
-	src / "container" / "container.c",
+	src / "objects" / "object.c",
 	src / "utils" / "utils.c",
-	src / "lib" / "buffer.c",
 )
 
 if DEBUG:
