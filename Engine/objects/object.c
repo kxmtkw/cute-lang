@@ -133,7 +133,8 @@ ct_obj_delete(CtObjectManager* mgr, CtObject* obj) {
 
 	CT_LOG("objects", "Object (%u.%u) [%p] unallocated.\n", obj->id, obj->bucket->id, obj);
 
-	free(obj);
+	free(obj->atoms);
+	free(obj->types);
 }
 
 // Get an atom in the container.
