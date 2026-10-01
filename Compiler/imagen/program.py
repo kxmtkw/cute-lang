@@ -84,13 +84,15 @@ class InstrSet(Enum):
 	call     = (0xB0, [Format.u8, Format.u8, Format.u8])
 	ret      = (0xB1, [])
 	retval   = (0xB2, [Format.u8])
-	modcall  = (0xBA, [Format.u8, Format.u8, Format.u8, Format.u8])
 
-	connew   = (0xC0, [Format.u8, Format.u8])
-	conget   = (0xC1, [Format.u8, Format.u8, Format.u8])
-	conset   = (0xC2, [Format.u8, Format.u8, Format.u8])
-	consize  = (0xC3, [Format.u8, Format.u8])
-	concopy  = (0xC4, [Format.u8, Format.u8])
+	objcreate  = (0xC0, [Format.u8, Format.u8])
+	objsize    = (0xC1, [Format.u8, Format.u8])
+	objget     = (0xC2, [Format.u8, Format.u8, Format.u8])
+	objset     = (0xC3, [Format.u8, Format.u8, Format.u8])
+	objgetbyte = (0xC4, [Format.u8, Format.u8, Format.u8])
+	objsetbyte = (0xC5, [Format.u8, Format.u8, Format.u8])
+	objresize  = (0xC6, [Format.u8, Format.u8])
+	objcopy    = (0xC7, [Format.u8, Format.u8])
 
 
 class CompileableUnit(ABC):
