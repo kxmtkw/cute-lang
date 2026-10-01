@@ -179,16 +179,53 @@ ct_obj_set(CtObjectManager* manager, CtObject* obj, uint32_t index, CtTypedAtom 
 
 // Get a byte in the container.
 uint8_t
-ct_obj_get_byte(CtObjectManager* manager, CtObject* obj, uint32_t index);
+ct_obj_get_byte(CtObjectManager* manager, CtObject* obj, uint32_t index) {
+
+	if (index >= obj->size * sizeof(CtAtom)) {
+		CT_ERROR_ENGINE(
+			ct_thread_error,
+			"Container",
+			"Access",
+			"Can not access container slot #%u (>= %u)", index, obj->size
+		);
+		return 0;
+	}
+
+	return ((uint8_t*)obj->atoms)[index];
+}
 
 // Set a byte in the container.
 void
-ct_obj_set_byte(CtObjectManager* manager, CtObject* obj, uint32_t index, uint8_t byte);
+ct_obj_set_byte(CtObjectManager* manager, CtObject* obj, uint32_t index, uint8_t byte) {
+	
+	if (index >= obj->size * sizeof(CtAtom)) {
+		CT_ERROR_ENGINE(
+			ct_thread_error,
+			"Container",
+			"Access",
+			"Can not access container slot #%u (>= %u)", index, obj->size
+		);
+		return;
+	}
+
+	((uint8_t*)obj->atoms)[index] = byte;
+	obj->types[index/sizeof(CtAtom)] = CT_ATOM_PRIMITIVE;
+	// object might be overwritten here
+}
 
 // Resize an object.
 void
-ct_obj_resize(CtObjectManager* manager, CtObject* obj, uint32_t new_size);
+ct_obj_resize(CtObjectManager* manager, CtObject* obj, uint32_t new_size) {
+	obj->atoms = realloc(obj->atoms, new_size * sizeof(CtAtom));
+	obj->types = realloc(obj->types, new_size * sizeof(CtAtomTypeSize));
+	obj->size = new_size;
+}
 
 // Create a shallow copy of an object
 CtObject*
-ct_obj_copy(CtObjectManager* manager, CtObject* obj);
+ct_obj_copy(CtObjectManager* manager, CtObject* obj) {
+	CtObject* copy = ct_obj_create(manager, obj->size);
+	memcpy(copy->atoms, obj->atoms, obj->size * sizeof(CtAtom));
+	memcpy(copy->types, obj->types, obj->size * sizeof(CtAtomTypeSize));
+	return copy;
+}

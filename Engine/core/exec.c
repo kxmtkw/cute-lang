@@ -646,20 +646,41 @@ HANDLER_OBJ_SET:
 	NEXT();
 
 HANDLER_OBJ_GET_BYTE:
-	;
+	r1 = instrs[ctx->ip++];
+	r2 = instrs[ctx->ip++];
+	r3 = instrs[ctx->ip++];
+	ct_ctx_load_atom(ctx, r2, &a1, &t1);
+	ct_ctx_load_atom(ctx, r3, &a2, &t2);
+	CT_CHECK_IF_OBJECT(t1);
+	ct_ctx_store_atom(ctx, r1, (CtAtom){.as_uint=ct_obj_get_byte(&ctx->objects, a1.as_object, a2.as_uint)}, CT_ATOM_PRIMITIVE);
+	NEXT();
 
 HANDLER_OBJ_SET_BYTE:
-	;
+	r1 = instrs[ctx->ip++];
+	r2 = instrs[ctx->ip++];
+	r3 = instrs[ctx->ip++];
+	ct_ctx_load_atom(ctx, r1, &a1, &t1);
+	ct_ctx_load_atom(ctx, r2, &a2, &t2);
+	ct_ctx_load_atom(ctx, r3, &a3, &t3);
+	CT_CHECK_IF_OBJECT(t1);
+	ct_obj_set_byte(&ctx->objects, a1.as_object, a2.as_uint, a3.as_uint);
+	NEXT();
 
 HANDLER_OBJ_RESIZE:
-	;
+	r1 = instrs[ctx->ip++];
+	r2 = instrs[ctx->ip++];
+	ct_ctx_load_atom(ctx, r1, &a1, &t1);
+	ct_ctx_load_atom(ctx, r2, &a2, &t2);
+	CT_CHECK_IF_OBJECT(t1);
+	ct_obj_resize(&ctx->objects, a1.as_object, a2.as_uint);
+	NEXT();
 
 HANDLER_OBJ_COPY:
 	r1 = instrs[ctx->ip++];
 	r2 = instrs[ctx->ip++];
 	ct_ctx_load_atom(ctx, r2, &a2, &t2);
 	CT_CHECK_IF_OBJECT(t2);
-	// a1.as_object = (CtObject*) (ctx->objects, (CtContainer*) a2.as_object);
+	a1.as_object = (CtObject*) ct_obj_copy(&ctx->objects, a2.as_object);
 	ct_ctx_store_atom(ctx, r1, a1, CT_ATOM_OBJECT);
 	NEXT();
 
