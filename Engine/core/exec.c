@@ -14,9 +14,9 @@
 
 #include "core/core.h"
 #include "core/context.h"
-#include "core/contextdef.h"
 
-#include "container/container.h"
+#include "objects/object.h"
+
 #include "utils/utils.h"
 
 
@@ -86,7 +86,7 @@ _ct_load_bytes(CtInstrSize* instrs, uint64_t* ip, uint32_t n, void* dest) {
 static inline void
 _ct_inc_atom(CtContext* ctx, uint8_t slot) {	
 	if (ctx->current_frame->file.types[slot] == CT_ATOM_OBJECT) {
-		ct_objects_dec_ref(ctx->objects, ctx->current_frame->file.atoms[slot].as_object);
+		ct_obj_dec_ref(&ctx->objects, ctx->current_frame->file.atoms[slot].as_object);
 		ctx->current_frame->object_field_count--;
 		ctx->current_frame->file.types[slot] = CT_ATOM_PRIMITIVE;
 	}
@@ -97,7 +97,7 @@ _ct_inc_atom(CtContext* ctx, uint8_t slot) {
 static inline void
 _ct_dec_atom(CtContext* ctx, uint8_t slot) {	
 	if (ctx->current_frame->file.types[slot] == CT_ATOM_OBJECT) {
-		ct_objects_dec_ref(ctx->objects, ctx->current_frame->file.atoms[slot].as_object);
+		ct_obj_dec_ref(&ctx->objects, ctx->current_frame->file.atoms[slot].as_object);
 		ctx->current_frame->object_field_count--;
 		ctx->current_frame->file.types[slot] = CT_ATOM_PRIMITIVE;
 	};
@@ -231,13 +231,15 @@ ct_engine_exec(CtEngine* engine, CtContext* ctx) {
 		[CT_INSTR_CALL]       = &&HANDLER_CALL,
 		[CT_INSTR_RETURN]     = &&HANDLER_RETURN,
 		[CT_INSTR_RETURN_VAL] = &&HANDLER_RETURN_VAL,
-		[CT_INSTR_MOD_CALL]   = &&HANDLER_MOD_CALL,
 
-		[CT_INSTR_CON_NEW]    = &&HANDLER_CON_NEW,
-		[CT_INSTR_CON_GET]    = &&HANDLER_CON_GET,
-		[CT_INSTR_CON_SET]    = &&HANDLER_CON_SET,
-		[CT_INSTR_CON_SIZE]   = &&HANDLER_CON_SIZE,
-		[CT_INSTR_CON_COPY]   = &&HANDLER_CON_COPY,
+		[CT_INSTR_OBJ_CREATE]    = &&HANDLER_OBJ_CREATE,
+		[CT_INSTR_OBJ_SIZE]      = &&HANDLER_OBJ_SIZE,
+		[CT_INSTR_OBJ_GET]       = &&HANDLER_OBJ_GET,
+		[CT_INSTR_OBJ_SET]       = &&HANDLER_OBJ_SET,
+		[CT_INSTR_OBJ_GET_BYTE]  = &&HANDLER_OBJ_GET_BYTE,
+		[CT_INSTR_OBJ_SET_BYTE]  = &&HANDLER_OBJ_SET_BYTE,
+		[CT_INSTR_OBJ_RESIZE]    = &&HANDLER_OBJ_RESIZE,
+		[CT_INSTR_OBJ_COPY]      = &&HANDLER_OBJ_COPY,
 	};
 
 	for (uint32_t i = 0; i < sizeof(dispatch_table)/sizeof(dispatch_table[0]); i++) {
@@ -605,36 +607,34 @@ HANDLER_RETURN_VAL:
 	ct_ctx_return_procedure(ctx, a1, t1);
 	NEXT();
 
-HANDLER_MOD_CALL:
-	r1 = instrs[ctx->ip++];
-	r2 = instrs[ctx->ip++];
-	r3 = instrs[ctx->ip++];
-	r4 = instrs[ctx->ip++];
-	ct_ctx_load_atom(ctx, r1, &a1, &t1);
-	ct_ctx_load_atom(ctx, r2, &a2, &t2);
-	ct_ctx_modcall(ctx, a1.as_uint, a2.as_uint, r3, r4);
-	NEXT();
-
-HANDLER_CON_NEW:
+HANDLER_OBJ_CREATE:
 	r1 = instrs[ctx->ip++];
 	r2 = instrs[ctx->ip++];
 	ct_ctx_load_atom(ctx, r2, &a1, &t1);
-	a2.as_object = (CtObject*) ct_container_new(ctx->objects, a1.as_uint);
+	a2.as_object = (CtObject*) ct_obj_create(&ctx->objects, a1.as_uint);
 	ct_ctx_store_atom(ctx, r1, a2, CT_ATOM_OBJECT);
 	NEXT();
 
-HANDLER_CON_GET:
+HANDLER_OBJ_SIZE:
+	r1 = instrs[ctx->ip++];
+	r2 = instrs[ctx->ip++];
+	ct_ctx_load_atom(ctx, r2, &a1, &t1);
+	CT_CHECK_IF_OBJECT(t1);
+	ct_ctx_store_atom(ctx, r1, (CtAtom){.as_uint = a1.as_object->size}, CT_ATOM_PRIMITIVE);
+	NEXT();
+
+HANDLER_OBJ_GET:
 	r1 = instrs[ctx->ip++];
 	r2 = instrs[ctx->ip++];
 	r3 = instrs[ctx->ip++];
 	ct_ctx_load_atom(ctx, r2, &a1, &t1);
 	ct_ctx_load_atom(ctx, r3, &a2, &t2);
 	CT_CHECK_IF_OBJECT(t1);
-	typed_atom = ct_container_get(ctx->objects, (CtContainer*) a1.as_object, a2.as_uint);
+	typed_atom = ct_obj_get(&ctx->objects, a1.as_object, a2.as_uint);
 	ct_ctx_store_atom(ctx, r1, typed_atom.atom, typed_atom.type);
 	NEXT();
 
-HANDLER_CON_SET:
+HANDLER_OBJ_SET:
 	r1 = instrs[ctx->ip++];
 	r2 = instrs[ctx->ip++];
 	r3 = instrs[ctx->ip++];
@@ -642,23 +642,24 @@ HANDLER_CON_SET:
 	ct_ctx_load_atom(ctx, r2, &a2, &t2);
 	ct_ctx_load_atom(ctx, r3, &a3, &t3);
 	CT_CHECK_IF_OBJECT(t1);
-	ct_container_set(ctx->objects, (CtContainer*) a1.as_object, a2.as_uint, (CtTypedAtom){t3, a3});
+	ct_obj_set(&ctx->objects, a1.as_object, a2.as_uint, (CtTypedAtom){t3, a3});
 	NEXT();
 
-HANDLER_CON_SIZE:
-	r1 = instrs[ctx->ip++];
-	r2 = instrs[ctx->ip++];
-	ct_ctx_load_atom(ctx, r2, &a1, &t1);
-	CT_CHECK_IF_OBJECT(t1);
-	ct_ctx_store_atom(ctx, r1, (CtAtom){.as_uint = ct_container_size(ctx->objects, (CtContainer*) a1.as_object)}, CT_ATOM_PRIMITIVE);
-	NEXT();
+HANDLER_OBJ_GET_BYTE:
+	;
 
-HANDLER_CON_COPY:
+HANDLER_OBJ_SET_BYTE:
+	;
+
+HANDLER_OBJ_RESIZE:
+	;
+
+HANDLER_OBJ_COPY:
 	r1 = instrs[ctx->ip++];
 	r2 = instrs[ctx->ip++];
 	ct_ctx_load_atom(ctx, r2, &a2, &t2);
 	CT_CHECK_IF_OBJECT(t2);
-	a1.as_object = (CtObject*) ct_container_copy(ctx->objects, (CtContainer*) a2.as_object);
+	// a1.as_object = (CtObject*) (ctx->objects, (CtContainer*) a2.as_object);
 	ct_ctx_store_atom(ctx, r1, a1, CT_ATOM_OBJECT);
 	NEXT();
 

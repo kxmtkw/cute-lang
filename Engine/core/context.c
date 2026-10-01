@@ -10,13 +10,10 @@
 #include "common/config.h"
 #include "common/error.h"
 
-#include "objects/manager.h"
-#include "modules/modules.h"
-#include "modules/modulespec.h"
+#include "objects/object.h"
 #include "utils/utils.h"
 
 #include "context.h"
-#include "contextdef.h"
 
 
 thread_local CtError ct_thread_error;
@@ -62,10 +59,10 @@ ct_ctx_get_top_frame(CtCallStack* s) {
 // Context methods
 
 CtContext*
-ct_ctx_new(CtImage* img, CtObjectManager* objects, uint32_t procedure_id) {
+ct_ctx_new(CtImage* img,  uint32_t procedure_id) {
 	CtContext* ctx = (CtContext*) malloc(sizeof(CtContext));
 	ctx->image = img;
-	ctx->objects = objects;
+	ct_obj_init_mgr(&ctx->objects);
 	ctx->running = true;
 	ctx->current_frame = NULL;
 	ct_ctx_init_call_stack(&ctx->callstack);
@@ -137,7 +134,7 @@ ct_ctx_call_procedure(CtContext* ctx, uint32_t procedure_id, uint8_t arg_start_s
 		frame->file.types[i] = ctx->current_frame->file.types[arg_start_slot + i];
 
 		if (frame->file.types[i] == CT_ATOM_OBJECT) {
-			ct_objects_inc_ref(ctx->objects, frame->file.atoms[i].as_object);
+			ct_obj_inc_ref(&ctx->objects, frame->file.atoms[i].as_object);
 			frame->object_field_count++;
 		}
 	};
@@ -170,63 +167,13 @@ ct_ctx_return_procedure(CtContext* ctx, CtAtom returned_atom, CtAtomType returne
 
 	for (size_t i = 0; i < CT_CONF_FIXED_SLOT_COUNT && frame->object_field_count; i++) {
 		if (frame->file.types[i] == CT_ATOM_OBJECT) {
-			ct_objects_dec_ref(ctx->objects, frame->file.atoms[i].as_object);
+			ct_obj_dec_ref(&ctx->objects, frame->file.atoms[i].as_object);
 			frame->object_field_count--;
 		}
 	};
 
 	CT_LOG("context", "Returned from procedure(%u) with return value: 0x%lx\n", frame->procedure_id, returned_atom.raw);
 }
-
-
-
-void
-ct_ctx_modcall(CtContext* ctx, uint32_t module_id, uint32_t method_id, uint8_t arg_start_slot, uint8_t return_slot) {
-
-	CtModuleMethodEntry entry;
-
-	uint32_t code = ct_modules_get_method(module_id, method_id, &entry);
-
-	if (!code) {
-		return;
-	};
-
-	CT_LOG("context", "Calling module method: %u.%u with %u arguments starting from slot %u. Returning to slot %u.\n", module_id, method_id, entry.argument_count, arg_start_slot, return_slot);
-
-	if (arg_start_slot + entry.argument_count > 255) {
-		CT_ERROR_ENGINE(
-			ct_thread_error, 
-			"Engine", 
-			"FaultyAlignment", 
-			"Module method: %u.%u expected %u arguments. Cannot use arguments starting from slot %u.", module_id, method_id, entry.argument_count, arg_start_slot
-		);
-		return;
-	}
-
-	CtModuleMethodArguments args = {
-		.context = ctx,
-		.argument_atoms = &ctx->current_frame->file.atoms[arg_start_slot],
-		.argument_types = &ctx->current_frame->file.types[arg_start_slot],
-	};
-
-	CtModuleMethodResult result = {0};
-
-	entry.method(args, &result);
-
-	if (!ct_ctx_is_running(ctx)) {
-		return;
-	};
-
-	if (ctx->current_frame->file.types[return_slot] == CT_ATOM_OBJECT) {
-		ct_objects_dec_ref(ctx->objects, ctx->current_frame->file.atoms[return_slot].as_object);	
-	} 
-	ctx->current_frame->file.atoms[return_slot] = result.returned_atom;
-	ctx->current_frame->file.types[return_slot] = result.returned_type;
-
-	if (result.returned_type == CT_ATOM_OBJECT) {
-		ct_objects_inc_ref(ctx->objects, result.returned_atom.as_object);
-	}
-};
 
 
 const uint8_t*
@@ -248,5 +195,5 @@ ct_ctx_read_data(CtContext* ctx, uint32_t index) {
 
 CtObjectManager*
 ct_ctx_get_object_manager(CtContext* ctx) {
-	return ctx->objects;
+	return &ctx->objects;
 }

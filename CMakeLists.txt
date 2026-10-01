@@ -11,10 +11,8 @@ add_executable(cute
 	Engine/core/exec.c
 	Engine/core/context.c
 	Engine/image/image.c
-	Engine/objects/manager.c
-	Engine/container/container.c
+	Engine/objects/object.c
 	Engine/utils/utils.c
-	Engine/lib/buffer.c
 )
 
 target_include_directories(cute PRIVATE Engine)

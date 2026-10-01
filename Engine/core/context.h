@@ -12,7 +12,6 @@
 #include "common/config.h"
 #include "common/error.h"
 
-#include "objects/manager.h"
 #include "objects/object.h"
 
 
@@ -46,13 +45,23 @@ typedef struct {
 
 
 // context specifies the state of execution. 
-struct CtContext;
+struct CtContext {
+	const CtImage*      image;
+	CtObjectManager     objects;
+	uint64_t            ip;
+	CtCallStack         callstack;
+	CtCallFrame*        current_frame;
+	double              cmp_diff;
+	bool                running;
+	uint8_t             exit_code;
+};
+
 typedef struct CtContext CtContext;
 
 
 // Create a new context. Requires the image to be ran and the starting procedure.
 CtContext*
-ct_ctx_new(CtImage* img, CtObjectManager* objects, uint32_t procedure_id);
+ct_ctx_new(CtImage* img, uint32_t procedure_id);
 
 // Free the context and its resources.
 void
@@ -77,5 +86,61 @@ ct_ctx_read_data(CtContext* ctx, uint32_t index);
 // Get the object manager pointer of this context
 CtObjectManager*
 ct_ctx_get_object_manager(CtContext* ctx);
+
+
+
+static inline bool
+ct_ctx_is_running(CtContext* ctx) {
+	if (ct_thread_error.raised) {
+		ctx->running = false;
+		ctx->exit_code = 1;
+		return false;
+	};
+	return true;
+}
+
+// Store an atom at a specified slot in the CURRENT call frame.
+static inline void
+ct_ctx_store_atom(CtContext* ctx, uint8_t slot, CtAtom atom, CtAtomType type) {
+
+	if (ctx->current_frame->file.types[slot] == CT_ATOM_OBJECT) {
+		ct_obj_dec_ref(&ctx->objects, ctx->current_frame->file.atoms[slot].as_object);
+		ctx->current_frame->object_field_count--;
+	};
+
+	ctx->current_frame->file.atoms[slot] = atom;
+	ctx->current_frame->file.types[slot] = type;
+
+	if (type == CT_ATOM_OBJECT) {
+		ct_obj_inc_ref(&ctx->objects, atom.as_object);
+		ctx->current_frame->object_field_count++;
+	};
+};
+
+// Load an atom from a specified index from the CURRENT call frame.
+static inline void
+ct_ctx_load_atom(CtContext* ctx, uint8_t slot, CtAtom* atom, CtAtomType* type) {
+	*atom = ctx->current_frame->file.atoms[slot];
+	*type = ctx->current_frame->file.types[slot];
+};
+
+// Move an atom from one slot to another.
+static inline void
+ct_ctx_move_atom(CtContext* ctx, uint8_t src_slot, uint8_t dest_slot) {
+
+	if (ctx->current_frame->file.types[dest_slot] == CT_ATOM_OBJECT) {
+		ct_obj_dec_ref(&ctx->objects, ctx->current_frame->file.atoms[dest_slot].as_object);
+		ctx->current_frame->object_field_count--;
+	};
+
+	ctx->current_frame->file.atoms[dest_slot] = ctx->current_frame->file.atoms[src_slot];
+	ctx->current_frame->file.types[dest_slot] = ctx->current_frame->file.types[src_slot];
+
+	if (ctx->current_frame->file.types[src_slot] == CT_ATOM_OBJECT) {
+		ct_obj_inc_ref(&ctx->objects, ctx->current_frame->file.atoms[src_slot].as_object);
+		ctx->current_frame->object_field_count++;
+	};
+};
+
 
 #endif // ENGINE_CONTEXT_H

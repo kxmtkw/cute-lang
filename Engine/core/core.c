@@ -8,12 +8,11 @@
 #include "common/instr.h"
 #include "common/error.h"
 
-#include "objects/manager.h"
+#include "objects/object.h"
 #include "utils/utils.h"
 
 #include "core/core.h"
 #include "core/context.h"
-#include "core/contextdef.h"
 
 
 void
@@ -128,10 +127,11 @@ ct_engine_run(int argc, char** argv) {
 	ct_engine_init(&engine);
 	ct_engine_load(&engine, argv[1]);
 
+	CtContext* ctx = ct_ctx_new(&engine.image, 0);
 	
 	ct_engine_run_context(
 		&engine,
-		ct_ctx_new(&engine.image, ct_objects_init(), 0)
+		ctx
 	);
 
 	ct_engine_end(&engine);
