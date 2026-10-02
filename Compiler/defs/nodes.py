@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 from abc import ABC, abstractmethod
 
 from Compiler.defs.op import BinaryOpType, UnaryOpType
-from Compiler.defs.expr import ExprLiteralType
 from Compiler.defs.node_base import NodeBase
-from Compiler.defs.scope import NameScope
+import Compiler.defs.symbols as sym
 
 
 class Node:
@@ -14,15 +13,10 @@ class Node:
 	@dataclass
 	class Program(NodeBase):
 		artifacts: List[Node.Artifact]
-		n_scope: NameScope = field(default_factory=NameScope)
 
 
 	@dataclass
 	class Artifact(NodeBase):
-		pass
-
-	@dataclass
-	class SupportArtifact(NodeBase):
 		pass
 
 
@@ -32,8 +26,8 @@ class Node:
 		params: List[Node.Declaration]
 		body: Node.Block
 		return_type: Node.Expression
-		n_scope: NameScope = field(default_factory=NameScope)
-		c_proc_id: Optional[int] = None
+		symbol: Optional[sym.Function] = None
+		symtable: sym.SymbolTable = field(default_factory=sym.SymbolTable)
 
 
 	@dataclass
@@ -41,15 +35,14 @@ class Node:
 		name: str 
 		virtual: bool
 		fields: list[Node.Declaration]
-		methods: list[Node.Function] = field(default_factory=list)
-		n_scope: NameScope = field(default_factory=NameScope)
+		symbol: Optional[sym.Container] = None
 
 
 	@dataclass
-	class ContainerImpl(SupportArtifact):
+	class ContainerImpl(Artifact):
 		name: str 
 		methods: list["Node.Function"]
-		n_container: Optional[Node.Container] = None
+		symbol: Optional[sym.Container] = None
 	
 
 	class Statement(NodeBase):
@@ -59,12 +52,13 @@ class Node:
 	class Expression(Statement):
 		pass
 
+
 	# Statements
 
 	@dataclass
 	class Block(Statement):
 		statements: List[Node.Statement]
-		n_scope: NameScope = field(default_factory=NameScope)
+		symtable: sym.SymbolTable = field(default_factory=sym.SymbolTable)
 
 
 	@dataclass
@@ -93,7 +87,7 @@ class Node:
 		name: str
 		type: Optional[Node.Expression]
 		value: Optional[Node.Expression]
-		c_slot_id: Optional[int] = None
+		symbol: Optional[sym.Variable] = None
 
 
 	@dataclass
@@ -101,18 +95,18 @@ class Node:
 		args: list[Node.Identifier]
 
 
-	# true expressions
+	# expressions
 
 	@dataclass
 	class Literal(Expression):
+		type: Literal["int", "float", "string", "char", "bool"]
 		value: Union[int, float, str, bool]
-		literal_type: ExprLiteralType
 
 
 	@dataclass
 	class Identifier(Expression):
 		value: str
-		n_refers: Optional[NodeBase] = None
+		refers: Optional[sym.Symbol] = None
 
 
 	@dataclass

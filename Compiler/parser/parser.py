@@ -1,4 +1,3 @@
-from Compiler.defs.expr import ExprLiteralType
 from Compiler.defs.op import BinaryOpType
 from Compiler.lexer.defs import KeywordType, SymbolType, Token, TokenType
 
@@ -192,19 +191,19 @@ class Parser:
 		token = self.advance()
 
 		if token.type in (TokenType.Int, TokenType.Hex, TokenType.Bin):
-			return Node.Literal(token.extract(int), ExprLiteralType.Int)
+			return Node.Literal("int", token.extract(int))
 
 		elif token.type == TokenType.Float:
-			return Node.Literal(token.extract(float), ExprLiteralType.Float)
+			return Node.Literal("float", token.extract(float))
 
 		elif token.type == TokenType.Bool:
-			return Node.Literal(token.extract(int), ExprLiteralType.Bool)
+			return Node.Literal("bool", token.extract(bool))
 
 		elif token.type == TokenType.Char:
-			return Node.Literal(token.extract(str), ExprLiteralType.Char)
+			return Node.Literal("char", token.extract(str))
 
 		elif token.type == TokenType.String:
-			return Node.Literal(token.extract(str), ExprLiteralType.String)
+			return Node.Literal("string", token.extract(str))
 
 		elif token.type == TokenType.Word:
 			return Node.Identifier(token.extract(str))

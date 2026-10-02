@@ -1,5 +1,4 @@
 from Compiler.codegen.state import GeneratorState
-from Compiler.defs.expr import ExprLiteralType
 from Compiler.defs.op import BinaryOpType, UnaryOpType
 from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.imagen.image import ImageBuilder
@@ -99,20 +98,20 @@ class CodeGenerator(NodeVisitor):
 		if slot is None:
 			raise ValueError()
 
-		match node.literal_type:
-			case ExprLiteralType.Int:
+		match node.type:
+			case "int":
 				instr = InstrSet.loadi32
 				value = int(node.value)
-			case ExprLiteralType.Float:
+			case "float":
 				instr = InstrSet.loadf32
 				value = float(node.value)
-			case ExprLiteralType.Bool:
+			case "bool":
 				instr = InstrSet.loadbyte
 				value = 1 if node.value else 0
-			case ExprLiteralType.Char:
+			case "char":
 				instr = InstrSet.loadbyte
 				value = ord(str(node.value))
-			case ExprLiteralType.String:
+			case "string":
 				raise ValueError("String literals are not supported yet.")
 
 		self.state.current_procedure.instructions.append(
