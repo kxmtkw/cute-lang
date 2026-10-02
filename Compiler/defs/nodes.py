@@ -13,6 +13,7 @@ class Node:
 	@dataclass
 	class Program(NodeBase):
 		artifacts: List[Node.Artifact]
+		symtable: sym.SymbolTable = field(default_factory=sym.SymbolTable)
 
 
 	@dataclass
