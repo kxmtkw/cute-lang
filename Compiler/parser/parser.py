@@ -68,7 +68,7 @@ class Parser:
 
 		nodes = []
 
-		while self.peek().type != TokenType.EOF:
+		while True:
 
 			self.eat_stmt_enders()
 
@@ -89,6 +89,9 @@ class Parser:
 				func = self.parse_impl()
 				nodes.append(func)
 				continue
+
+			if self.peek().type == TokenType.EOF:
+				break
 
 			raise ValueError(f"Unexpected token: {self.peek()}")
 		
