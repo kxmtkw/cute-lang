@@ -12,6 +12,7 @@ class Resolver(NodeVisitor):
 
 	def __init__(self) -> None:
 		super().__init__()
+		self.first_pass: bool = True
 		self.in_builtin_context: bool = False
 		self.callee_context: bool = False
 		self.current_symtable: sym.SymbolTable
@@ -19,6 +20,13 @@ class Resolver(NodeVisitor):
 
 	def visitProgram(self, node: Node.Program):
 		self.current_symtable = node.symtable
+
+		self.first_pass = True
+
+		for artif in node.artifacts:
+			self.visit(artif)
+
+		self.first_pass = False
 
 		for artif in node.artifacts:
 			self.visit(artif)
@@ -28,13 +36,15 @@ class Resolver(NodeVisitor):
 
 	def visitFunction(self, node: Node.Function):
 
-		if node.name in self.current_symtable:
-			raise ValueError(f"Redefinition of function: {node.name}")
+		if self.first_pass:
 
-		node.symbol = sym.Function()
-		node.symbol.name = node.name
+			if node.name in self.current_symtable:
+				raise ValueError(f"Redefinition of function: {node.name}")
 
-		self.current_symtable[node.name] = node.symbol
+			node.symbol = sym.Function()
+			node.symbol.name = node.name
+
+			self.current_symtable[node.name] = node.symbol
 
 		self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
@@ -54,10 +64,11 @@ class Resolver(NodeVisitor):
 
 
 	def visitIdentifier(self, node: Node.Identifier):
-		symbol = self.current_symtable.recursive_get(node.value, default=None)
-		if symbol is None and not self.in_builtin_context:
-			raise ValueError(f"Unknown identifier: {node.value}")
-		node.refers = symbol
+		if not self.first_pass:
+			symbol = self.current_symtable.recursive_get(node.value, default=None)
+			if symbol is None and not self.in_builtin_context:
+				raise ValueError(f"Unknown identifier: {node.value}")
+			node.refers = symbol
 		return node
 
 
@@ -97,16 +108,18 @@ class Resolver(NodeVisitor):
 
 	def visitDeclaration(self, node: Node.Declaration):
 
-		if node.name in self.current_symtable:
-			raise ValueError(f"Identifier already defined within scope: {node.name}")
-		
+		if self.first_pass:
+
+			if node.name in self.current_symtable:
+				raise ValueError(f"Identifier already defined within scope: {node.name}")
+	
+			node.symbol = sym.Variable()
+			node.symbol.name = node.name
+
+			self.current_symtable[node.name] = node.symbol
+
 		if node.type is not None:
 			self.visit(node.type)
-
-		node.symbol = sym.Variable()
-		node.symbol.name = node.name
-
-		self.current_symtable[node.name] = node.symbol
 
 		if node.value is not None:
 			self.visit(node.value)
@@ -151,17 +164,20 @@ class Resolver(NodeVisitor):
 	
 	def visitContainer(self, node: Node.Container):
 
-		node.symbol = sym.Container()
-		node.symbol.name = node.name
-		node.symbol.virtual = node.virtual
+		if self.first_pass:
 
-		self.current_symtable[node.symbol.name] = node.symbol
+			node.symbol = sym.Container()
+			node.symbol.name = node.name
+			node.symbol.virtual = node.virtual
+
+			self.current_symtable[node.symbol.name] = node.symbol
+
+		assert node.symbol
 
 		for member in node.fields:
 			self.visit(member)
 			assert member.symbol
 			node.symbol.fields[member.symbol.name] = member.symbol
-
 		
 		return node
 

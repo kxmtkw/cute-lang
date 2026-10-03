@@ -72,9 +72,13 @@ class CodeGenerator(NodeVisitor):
 	def visitFunction(self, node: Node.Function):
 
 		assert node.symbol
-		self.assignProcedureId(node.symbol)
+		try:
+			proc_id = self.state.get_assigned_proc_id(id(node.symbol))
+		except KeyError:
+			self.assignProcedureId(node.symbol)
+			proc_id = self.state.get_assigned_proc_id(id(node.symbol))
 
-		proc = Procedure(self.state.get_assigned_proc_id(id(node.symbol)), len(node.params), [])
+		proc = Procedure(proc_id, len(node.params), [])
 
 		self.state.new_procedure(proc)
 
