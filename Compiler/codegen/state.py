@@ -11,12 +11,13 @@ class ProcedureState:
 		self.slots: list[bool] = [False for _ in range(SLOT_COUNT)]
 		self.tmp_slots: set[int] = set()
 		self.slots_stack: list[int] = []
-		self.variable_assignments: dict[str, int] = {}
+		self.variable_assignments: dict[int, int] = {} # address to slot id
 
 
 class GeneratorState:
 
 	def __init__(self) -> None:
+		self._procedure_assignments: dict[int, int] = {} # address to procedure id
 		self._proc_state: ProcedureState | None = None
 		self._label_num: int = 0
 		self._current_procedure_id: int = 1
@@ -37,6 +38,14 @@ class GeneratorState:
 	def end_procedure(self) -> None:
 		"End the current procedure context."
 		self._proc_state = None
+
+
+	def assign_proc_id(self, proc: int, id: int):
+		self._procedure_assignments[proc] = id
+
+
+	def get_assigned_proc_id(self, proc: int):
+		return self._procedure_assignments[proc]
 
 
 	@property
@@ -142,6 +151,14 @@ class GeneratorState:
 	def pop_slot(self) -> int:
 		"Pop a slot from the stack."
 		return self.current_state.slots_stack.pop()
+
+
+	def assign_slot(self, id: int, slot: int):
+		self.current_state.variable_assignments[id] = slot
+
+
+	def get_assigned_slot(self, id: int) -> int:
+		return self.current_state.variable_assignments[id]
 
 
 	def label(self) -> int:

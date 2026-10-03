@@ -4,6 +4,7 @@ from Compiler.imagen.image import ImageBuilder
 from Compiler.imagen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
 from Compiler.imagen.image import Format
 
+import Compiler.defs.symbols as syms
 
 OUT_FMT: dict[str, int] = {
 	"binary": 0,
@@ -110,10 +111,9 @@ class BuiltinHandler:
 					f"Argument {position} of __builtin__ instr must be a literal for format {fmt.value}."
 				)
 
-			assert argument.n_refers is not None
-			assert isinstance(argument.n_refers, Node.Declaration)
-			assert argument.n_refers.c_slot_id is not None
-			slot_num = argument.n_refers.c_slot_id
+			assert argument.refers is not None
+			assert isinstance(argument.refers, syms.Variable)
+			slot_num = self.state.get_assigned_slot(id(argument.refers))
 			return slot_num
 
 		if isinstance(argument, Node.Literal):

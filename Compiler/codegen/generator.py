@@ -5,6 +5,8 @@ from Compiler.imagen.image import ImageBuilder
 from Compiler.imagen.program import Program, Procedure, Label, Constant, Instruction, InstrSet
 from Compiler.codegen.builtin import BuiltinHandler
 
+import Compiler.defs.symbols as syms
+
 
 
 INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
@@ -43,13 +45,13 @@ class CodeGenerator(NodeVisitor):
 		self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
 
-	def assignProcedureId(self, func: Node.Function):
+	def assignProcedureId(self, func: syms.Function):
 		if func.name == "main":
 			proc_id = 0
 		else:
 			proc_id = self.state.get_procedure_id()
 
-		func.c_proc_id = proc_id
+		self.state.assign_proc_id(id(func), proc_id)
 
 	
 	def visitProgram(self, node: Node.Program):
@@ -69,11 +71,10 @@ class CodeGenerator(NodeVisitor):
 
 	def visitFunction(self, node: Node.Function):
 
-		self.assignProcedureId(node)
+		assert node.symbol
+		self.assignProcedureId(node.symbol)
 
-		assert node.c_proc_id is not None
-
-		proc = Procedure(node.c_proc_id, len(node.params), [])
+		proc = Procedure(self.state.get_assigned_proc_id(id(node.symbol)), len(node.params), [])
 
 		self.state.new_procedure(proc)
 
@@ -124,31 +125,31 @@ class CodeGenerator(NodeVisitor):
 
 	def visitIdentifier(self, node: Node.Identifier):
 
-		referred_node = node.n_refers
-		assert referred_node is not None
+		referred_sym = node.refers
+		assert referred_sym is not None
 
-		if isinstance(referred_node, Node.Declaration):
-			assert referred_node.c_slot_id is not None
-			self.state.push_slot(referred_node.c_slot_id)
+		if isinstance(referred_sym, syms.Variable):
+			self.state.push_slot(self.state.get_assigned_slot(id(referred_sym)))
 
-		elif isinstance(referred_node, Node.Function):
-			if referred_node.c_proc_id is None:
-				self.assignProcedureId(referred_node)
-
-			assert referred_node.c_proc_id is not None
+		elif isinstance(referred_sym, syms.Function):
+			try:
+				proc_id = self.state.get_assigned_proc_id(id(referred_sym))
+			except KeyError:
+				self.assignProcedureId(referred_sym)
+				proc_id = self.state.get_assigned_proc_id(id(referred_sym))
 
 			slot = self.state.get_tmp_slot()
 
 			assert slot is not None
 
 			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.loadu32, [slot, referred_node.c_proc_id])
+				Instruction(InstrSet.loadu32, [slot, proc_id])
 			)
 
 			self.state.push_slot(slot)
 
 		else:
-			raise RuntimeWarning(f"Identifier {node.value} refers to {node.n_refers} which cannot be converted into any bytecode representative.")
+			raise RuntimeWarning(f"Identifier {node.value} refers to {node.refers} which cannot be converted into any bytecode representative.")
 
 		return node
 
@@ -232,7 +233,7 @@ class CodeGenerator(NodeVisitor):
 		slot = self.state.get_slot()
 		assert slot is not None
 
-		node.c_slot_id = slot
+		self.state.assign_slot(id(node.symbol), slot)
 
 		if node.value is not None:
 			self.visit(node.value)
