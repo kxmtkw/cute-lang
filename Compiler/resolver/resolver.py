@@ -99,10 +99,12 @@ class Resolver(NodeVisitor):
 
 
 	def visitFor(self, node: Node.For):
+		self.current_symtable = node.symtable.set_parent(self.current_symtable)
 		self.visit(node.init)
 		self.visit(node.condition)
 		self.visit(node.step)
 		self.visit(node.body)
+		self.current_symtable = node.symtable.get_parent()
 		return node
 		
 

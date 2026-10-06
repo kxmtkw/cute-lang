@@ -81,6 +81,7 @@ class Node:
 		condition: Node.Expression
 		step: Node.Expression
 		body: Node.Statement
+		symtable: sym.SymbolTable = field(default_factory=sym.SymbolTable)
 
 
 	@dataclass
