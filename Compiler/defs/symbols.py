@@ -60,6 +60,7 @@ class Function(Symbol):
 	name: str = field(default_factory=str)
 	arguments: list[Variable] = field(default_factory=list)
 	returns: Optional["Container"] = None
+	is_entrypoint: bool = False
 
 
 @dataclass

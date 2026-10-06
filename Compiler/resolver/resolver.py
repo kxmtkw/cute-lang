@@ -3,6 +3,7 @@ from typing import Optional
 from Compiler.defs.node_base import NodeBase
 from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.defs.op import BinaryOpType
+from Compiler.defs import var
 import Compiler.defs.symbols as sym
 
 
@@ -12,13 +13,16 @@ class Resolver(NodeVisitor):
 
 	def __init__(self) -> None:
 		super().__init__()
+		self.program: Node.Program
+		self.current_symtable: sym.SymbolTable
 		self.first_pass: bool = True
 		self.in_builtin_context: bool = False
 		self.callee_context: bool = False
-		self.current_symtable: sym.SymbolTable
 
 
 	def visitProgram(self, node: Node.Program):
+
+		self.program = node
 		self.current_symtable = node.symtable
 
 		self.first_pass = True
@@ -43,6 +47,9 @@ class Resolver(NodeVisitor):
 
 			node.symbol = sym.Function()
 			node.symbol.name = node.name
+
+			if self.current_symtable is self.program.symtable and node.name == var.ENTRYPOINT_FUNC_NAME:
+				node.symbol.is_entrypoint = True
 
 			self.current_symtable[node.name] = node.symbol
 
@@ -168,6 +175,9 @@ class Resolver(NodeVisitor):
 
 		if self.first_pass:
 
+			if node.name in self.current_symtable:
+				raise ValueError(f"Identifier already defined within scope: {node.name}")
+			
 			node.symbol = sym.Container()
 			node.symbol.name = node.name
 			node.symbol.virtual = node.virtual

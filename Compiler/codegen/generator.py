@@ -44,10 +44,13 @@ class CodeGenerator(NodeVisitor):
 		self.program = Program([], [])
 		self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
+		self.entrypoint_found = False
+
 
 	def assignProcedureId(self, func: syms.Function):
-		if func.name == "main":
+		if func.is_entrypoint:
 			proc_id = 0
+			self.entrypoint_found = True
 		else:
 			proc_id = self.state.get_procedure_id()
 
@@ -58,6 +61,9 @@ class CodeGenerator(NodeVisitor):
 
 		for artif in node.artifacts:
 			self.visit(artif)
+
+		if not self.entrypoint_found:
+			raise ValueError("main not defined in root scope.")
 
 		self.program.assemble(self.builder)
 		image = self.builder.compile()
