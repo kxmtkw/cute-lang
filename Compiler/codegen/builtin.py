@@ -70,7 +70,7 @@ class BuiltinHandler:
             raise ValueError("Expected an identifier for arg 2 of __builtin__ out.")
 
         out = Instruction(InstrSet.out, [fmt_code, slot_num])
-        self.state.current_procedure.instructions.append(out)
+        self.state.current_procedure().instructions.append(out)
 
 
     def builtin_instr(self):
@@ -99,7 +99,7 @@ class BuiltinHandler:
             self._encode_instruction_argument(argument, argument_formats[index], index + 1)
             for index, argument in enumerate(arguments)
         ]
-        self.state.current_procedure.instructions.append(Instruction(instruction, encoded_arguments))
+        self.state.current_procedure().instructions.append(Instruction(instruction, encoded_arguments))
 
 
     def _encode_instruction_argument(self, argument: Node.Expression, fmt: Format, position: int):

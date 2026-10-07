@@ -58,12 +58,12 @@ class GeneratorState:
 
     def current_procedure(self) -> Procedure:
         "Get the current procedure."
-        return self.current_state.proc
+        return self.current_state().proc
 
 
     def get_slot(self) -> int | None:
         "Find an empty slot in the current procedure context. Returns None if no empty slot is found."
-        state = self.current_state
+        state = self.current_state()
         for i, occupied in enumerate(state.slots):
             if not occupied:
                 state.slots[i] = True
@@ -73,7 +73,7 @@ class GeneratorState:
 
     def get_continous_slots(self, count: int) -> list[int] | None:
         "Get `count` continuous slots, return None if the conditions could not be met."
-        state = self.current_state
+        state = self.current_state()
         found: bool = False
         candidate: int = 0
 
@@ -99,13 +99,13 @@ class GeneratorState:
         "Get a temporary slot for expression evaluations."
         slot = self.get_slot()
         if slot is not None:
-            self.current_state.tmp_slots.add(slot)
+            self.current_state().tmp_slots.add(slot)
         return slot
 
 
     def get_continous_tmp_slots(self, count: int) -> list[int] | None:
         "Get `count` temporary continuous slots, return None if the conditions could not be met."
-        state = self.current_state
+        state = self.current_state()
         found: bool = False
         candidate: int = 0
 
@@ -130,14 +130,14 @@ class GeneratorState:
 
     def free_slot(self, slot: int) -> None:
         "Free a slot."
-        state = self.current_state
+        state = self.current_state()
         state.slots[slot] = False
         state.tmp_slots.discard(slot)
 
 
     def free_slot_if_tmp(self, slot: int) -> None:
         "Only free a slot if it was temporary. Prevents freeing of variable slots."
-        state = self.current_state
+        state = self.current_state()
         if slot in state.tmp_slots:
             state.slots[slot] = False
             state.tmp_slots.remove(slot)
@@ -145,20 +145,20 @@ class GeneratorState:
 
     def push_slot(self, slot: int) -> None:
         "Push a slot to the stack."
-        self.current_state.slots_stack.append(slot)
+        self.current_state().slots_stack.append(slot)
 
 
     def pop_slot(self) -> int:
         "Pop a slot from the stack."
-        return self.current_state.slots_stack.pop()
+        return self.current_state().slots_stack.pop()
 
 
     def assign_slot(self, id: int, slot: int):
-        self.current_state.variable_assignments[id] = slot
+        self.current_state().variable_assignments[id] = slot
 
 
     def get_assigned_slot(self, id: int) -> int:
-        return self.current_state.variable_assignments[id]
+        return self.current_state().variable_assignments[id]
 
 
     def label(self) -> int:

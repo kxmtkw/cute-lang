@@ -123,7 +123,7 @@ class CodeGenerator(NodeVisitor):
             case "string":
                 raise ValueError("String literals are not supported yet.")
 
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(instr, [slot, value])
         )
 
@@ -150,7 +150,7 @@ class CodeGenerator(NodeVisitor):
 
             assert slot is not None
 
-            self.state.current_procedure.instructions.append(
+            self.state.current_procedure().instructions.append(
                 Instruction(InstrSet.loadu32, [slot, proc_id])
             )
 
@@ -177,17 +177,17 @@ class CodeGenerator(NodeVisitor):
         condition_slot = self.state.pop_slot()
         self.state.free_slot_if_tmp(condition_slot)
 
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.jmpifn, [condition_slot, else_branch_label if node.else_branch else end_if_label])
         )
         self.visit(node.then_branch)
 
         if node.else_branch:
-            self.state.current_procedure.instructions.append(Instruction(InstrSet.jmp, [end_if_label]))
-            self.state.current_procedure.instructions.append(else_branch_label)
+            self.state.current_procedure().instructions.append(Instruction(InstrSet.jmp, [end_if_label]))
+            self.state.current_procedure().instructions.append(else_branch_label)
             self.visit(node.else_branch)
 
-        self.state.current_procedure.instructions.append(end_if_label)
+        self.state.current_procedure().instructions.append(end_if_label)
 
         return node
 
@@ -196,19 +196,19 @@ class CodeGenerator(NodeVisitor):
 
         loop_start = Label(self.state.label())
         loop_end = Label(self.state.label())
-        self.state.current_procedure.instructions.append(loop_start)
+        self.state.current_procedure().instructions.append(loop_start)
 
         self.visit(node.condition)
         t1 = self.state.pop_slot()
         self.state.free_slot_if_tmp(t1)
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.jmpifn, [t1, loop_end])
         )
         self.visit(node.body)
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.jmp, [loop_start])
         )
-        self.state.current_procedure.instructions.append(loop_end)
+        self.state.current_procedure().instructions.append(loop_end)
 
         return node
 
@@ -218,19 +218,19 @@ class CodeGenerator(NodeVisitor):
         loop_start = Label(self.state.label())
         loop_end = Label(self.state.label())
         self.visit(node.init)
-        self.state.current_procedure.instructions.append(loop_start)
+        self.state.current_procedure().instructions.append(loop_start)
         self.visit(node.condition)
         t1 = self.state.pop_slot()
         self.state.free_slot_if_tmp(t1)
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.jmpifn, [t1, loop_end])
         )
         self.visit(node.body)
         self.visit(node.step)
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.jmp, [loop_start])
         )
-        self.state.current_procedure.instructions.append(loop_end)
+        self.state.current_procedure().instructions.append(loop_end)
 
         return node
 
@@ -247,7 +247,7 @@ class CodeGenerator(NodeVisitor):
 
             value_slot = self.state.pop_slot()
 
-            self.state.current_procedure.instructions.append(
+            self.state.current_procedure().instructions.append(
                 Instruction(InstrSet.mov, [slot, value_slot])
             )
             self.state.free_slot_if_tmp(value_slot)
@@ -264,22 +264,22 @@ class CodeGenerator(NodeVisitor):
 
         if node.op == BinaryOpType.Assign:
             mov = Instruction(InstrSet.mov, [t1, t2])
-            self.state.current_procedure.instructions.append(mov)
+            self.state.current_procedure().instructions.append(mov)
 
         elif node.op in INSTRUCTION_ENCODING_TABLE:
             slot = self.state.get_tmp_slot()
             assert slot is not None
             instr = INSTRUCTION_ENCODING_TABLE[node.op]
             operation = Instruction(instr, [slot, t1, t2])
-            self.state.current_procedure.instructions.append(operation)
+            self.state.current_procedure().instructions.append(operation)
             self.state.push_slot(slot)
 
         elif node.op in CMP_INSTRUCTION_ENCODING_TABLE:
             slot = self.state.get_tmp_slot()
             assert slot is not None
             instr = CMP_INSTRUCTION_ENCODING_TABLE[node.op]
-            self.state.current_procedure.instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
-            self.state.current_procedure.instructions.append(Instruction(instr, [slot]))
+            self.state.current_procedure().instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
+            self.state.current_procedure().instructions.append(Instruction(instr, [slot]))
             self.state.push_slot(slot)
 
         self.state.free_slot_if_tmp(t2)
@@ -297,11 +297,11 @@ class CodeGenerator(NodeVisitor):
             self.visit(node.value)
             slot = self.state.pop_slot()
             self.state.free_slot_if_tmp(slot)
-            self.state.current_procedure.instructions.append(
+            self.state.current_procedure().instructions.append(
                 Instruction(InstrSet.retval, [slot])
             )
         else:
-            self.state.current_procedure.instructions.append(
+            self.state.current_procedure().instructions.append(
                 Instruction(InstrSet.ret, [])
             )
 
@@ -320,7 +320,7 @@ class CodeGenerator(NodeVisitor):
                 self.visit(arg)
                 expr_slot = self.state.pop_slot()
                 mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
-                self.state.current_procedure.instructions.append(mov)
+                self.state.current_procedure().instructions.append(mov)
                 self.state.free_slot_if_tmp(expr_slot)
 
         self.visit(node.callee)
@@ -331,7 +331,7 @@ class CodeGenerator(NodeVisitor):
         assert return_slot is not None
         arg_start_slot = slots[0] if slots is not None else 0
 
-        self.state.current_procedure.instructions.append(
+        self.state.current_procedure().instructions.append(
             Instruction(InstrSet.call, [callee_slot, arg_start_slot, return_slot])
         )
 
