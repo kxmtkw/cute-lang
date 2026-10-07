@@ -7,44 +7,44 @@ from Compiler.codegen.generator import CodeGenerator
 
 
 def main():
-    filepath = sys.argv[1]
+	filepath = sys.argv[1]
 
-    with open(filepath) as file:
-        content = file.read()
+	with open(filepath) as file:
+		content = file.read()
 
-    print("\n" + "-"*10 + "\n")
+	print("\n" + "-"*10 + "\n")
 
-    lexer = Lexer(content)
-    tokens = lexer.tokenize()
+	lexer = Lexer(content)
+	tokens = lexer.tokenize()
 
-    for token in tokens:
-        print(token)
+	for token in tokens:
+		print(token)
 
-    print("\n" + "-"*10 + "\n")
+	print("\n" + "-"*10 + "\n")
 
-    parser = Parser(tokens)
-    program = parser.parse()
+	parser = Parser(tokens)
+	program = parser.parse()
 
-    print("\n" + "-"*10 + "\n")
+	print("\n" + "-"*10 + "\n")
 
-    resolver = Resolver()
-    resolver.visit(program)
+	resolver = Resolver()
+	resolver.visit(program)
 
-    print(program.dump())
+	print(program.dump())
 
-    print("\n" + "-"*10 + "\n")
+	print("\n" + "-"*10 + "\n")
 
-    checker = TypeChecker()
-    checker.visit(program)
-    print(program.dump())
+	checker = TypeChecker()
+	checker.visit(program)
+	print(program.dump())
 
-    print("\n" + "-"*10 + "\n")
+	print("\n" + "-"*10 + "\n")
 
-    outpath = filepath.removesuffix(".ct") + ".cute"
-    gen = CodeGenerator(outpath)
-    gen.visit(program)
+	outpath = filepath.removesuffix(".ct") + ".cute"
+	gen = CodeGenerator(outpath)
+	gen.visit(program)
 
-    print(f"--- Program Image written to {outpath}")
+	print(f"--- Program Image written to {outpath}")
 
 if __name__ == "__main__":
-    main()
+	main()
