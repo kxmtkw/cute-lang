@@ -62,6 +62,10 @@ class Resolver(NodeVisitor):
         for decl in node.params:
             self.visit(decl)
 
+        if self.first_pass:
+            assert node.symbol
+            node.symbol.arguments = [decl.symbol for decl in node.params if decl.symbol]
+
         self.visit(node.return_type)
         self.visit(node.body)
 
@@ -200,17 +204,19 @@ class Resolver(NodeVisitor):
 
     def visitContainerImpl(self, node: Node.ContainerImpl):
 
-        if node.name not in self.current_symtable:
-            raise ValueError("Container not found so can not be implemented")
+        container_symbol = self.current_symtable.recursive_get(node.name, default=None)
+        if container_symbol is None:
+            raise ValueError(f"Container not found so can not be implemented: {node.name}")
 
-        container = self.current_symtable[node.name]
-        assert isinstance(container, sym.Container)
-        node.symbol = container
+        if not isinstance(container_symbol, sym.Container):
+            raise TypeError(f"{node.name} is not a container and cannot be implemented")
+
+        node.symbol = container_symbol
 
         for method in node.methods:
             # we also need to make sure here that any method name is not a field name
             self.visit(method)
             assert method.symbol
-            container.methods[method.symbol.name] = method.symbol
+            container_symbol.methods[method.symbol.name] = method.symbol
 
         return node
