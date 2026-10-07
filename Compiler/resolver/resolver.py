@@ -4,6 +4,7 @@ from Compiler.defs.node_base import NodeBase
 from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.defs.op import BinaryOpType
 from Compiler.defs import var
+from Compiler.defs.primitives import PRIMTIVES
 import Compiler.defs.symbols as sym
 
 
@@ -24,6 +25,10 @@ class Resolver(NodeVisitor):
 
 		self.program = node
 		self.current_symtable = node.symtable
+
+		self.current_symtable.update(
+			{p.name:p for p in PRIMTIVES}
+		)
 
 		self.first_pass = True
 
