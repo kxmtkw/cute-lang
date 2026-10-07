@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, TypeVar
+from typing import Literal, Optional, TypeVar
 
 
 @dataclass
@@ -10,7 +10,7 @@ class Symbol:
 class SymbolTable(dict[str, Symbol]):
 	"Extended dict class for parent/child symbol tables."
 
-	def __init__(self):
+	def __init__(self): 
 		self.parent: Optional[SymbolTable] = None
 
 
@@ -27,7 +27,7 @@ class SymbolTable(dict[str, Symbol]):
 		return self.parent
 
 
-	def recursive_get(self, key: str, *, default: Symbol | None) -> Symbol | None:
+	def recursive_get(self, key: str, *, default: Symbol | None = None) -> Symbol | None:
 		"Search the table and all its parents to get a symbol."  
 		current = self
 		while current is not None:

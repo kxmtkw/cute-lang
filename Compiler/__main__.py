@@ -2,6 +2,7 @@ import sys
 from Compiler.lexer.lexer import Lexer
 from Compiler.parser.parser import Parser
 from Compiler.resolver.resolver import Resolver
+from Compiler.checker.checker import TypeChecker
 from Compiler.codegen.generator import CodeGenerator
 
 
@@ -29,8 +30,14 @@ def main():
 
 	resolver = Resolver()
 	resolver.visit(program)
-	print(program.dump())
 
+	print(program.dump())
+	
+	print("\n" + "-"*10 + "\n")
+
+	checker = TypeChecker()
+	checker.visit(program)
+	print(program.dump())
 
 	print("\n" + "-"*10 + "\n")
 
