@@ -4,6 +4,7 @@ from Compiler.defs.node_base import NodeBase
 from Compiler.defs.nodes import Node, NodeVisitor
 from Compiler.defs.op import BinaryOpType
 from Compiler.defs import var
+import Compiler.defs.primitives as prim
 import Compiler.defs.symbols as sym
 
 
@@ -18,27 +19,27 @@ class TypeChecker(NodeVisitor):
 
 		self.symbol_stack: list[sym.Symbol] = []
 
-		self.current_func_sym: sym.Function
+		self.current_func_sym: Optional[sym.Function] = None
 
 
 	def typeof(self, symbol: sym.Symbol) -> sym.Container:
 		"Returns the 'type' of any symbol."
 		if isinstance(symbol, sym.Function):
+			assert symbol.returns
 			return symbol.returns
 		elif isinstance(symbol, sym.Variable):
+			assert symbol.type
 			return symbol.type
-		elif isinstance(symbol, sym.Container):
+		else:
+			assert isinstance(symbol, sym.Container)
 			return symbol
 
-		return None
 
 
 	def visitProgram(self, node: Node.Program):
 
 		self.program = node
 		self.current_symtable = node.symtable
-
-		self.first_pass = True
 
 		for artif in node.artifacts:
 			self.visit(artif)
@@ -50,15 +51,20 @@ class TypeChecker(NodeVisitor):
 
 		self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
+		assert node.symbol
+
 		self.current_func_sym = node.symbol
 
 		for decl in node.params:
 			self.visit(decl)
 
 		self.visit(node.return_type)
+		symbol = self.symbol_stack.pop()
 
-		self.current_func_sym.returns = self.symbol_stack.pop()
-		assert isinstance(self.current_func_sym.returns, sym.Container)
+		if not isinstance(symbol, sym.Container):
+			raise TypeError(f"{symbol} is not a valid type.")
+		
+		self.current_func_sym.returns = symbol
 		
 		self.visit(node.body)
 
@@ -70,11 +76,11 @@ class TypeChecker(NodeVisitor):
 	def visitLiteral(self, node: Node.Literal):
 		match node.type:
 			case "int":
-				self.symbol_stack.append(self.current_symtable.recursive_get("int"))
+				self.symbol_stack.append(prim.INT_CONTAINER)
 			case "float":
-				self.symbol_stack.append(self.current_symtable.recursive_get("float"))
+				self.symbol_stack.append(prim.FLOAT_CONTAINER)
 			case "bool":
-				self.symbol_stack.append(self.current_symtable.recursive_get("bool"))
+				self.symbol_stack.append(prim.BOOL_CONTAINER)
 		return node
 
 
@@ -170,6 +176,7 @@ class TypeChecker(NodeVisitor):
 
 
 	def visitCall(self, node: Node.Call):
+
 		self.visit(node.callee)
 
 		func_sym = self.symbol_stack.pop()
@@ -177,6 +184,7 @@ class TypeChecker(NodeVisitor):
 		if not isinstance(func_sym, sym.Function):
 			raise ValueError()
 
+		assert func_sym.returns
 		type_sym = func_sym.returns
 
 		self.symbol_stack.append(type_sym)
@@ -193,6 +201,9 @@ class TypeChecker(NodeVisitor):
 
 		type_sym = self.typeof(self.symbol_stack.pop())
 
+		if self.current_func_sym is None:
+			raise TypeError("Return outside of function.")
+		
 		if type_sym is not self.current_func_sym.returns:
 			raise ValueError()
 		
