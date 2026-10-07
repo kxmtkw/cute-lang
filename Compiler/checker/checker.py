@@ -8,232 +8,230 @@ import Compiler.defs.primitives as prim
 import Compiler.defs.symbols as sym
 
 
-
 class TypeChecker(NodeVisitor):
 
 
-	def __init__(self) -> None:
-		super().__init__()
-		self.program: Node.Program
-		self.current_symtable: sym.SymbolTable
+    def __init__(self) -> None:
+        super().__init__()
+        self.program: Node.Program
+        self.current_symtable: sym.SymbolTable
 
-		self.symbol_stack: list[sym.Symbol] = []
+        self.symbol_stack: list[sym.Symbol] = []
 
-		self.current_func_sym: Optional[sym.Function] = None
+        self.current_func_sym: Optional[sym.Function] = None
 
 
-	def typeof(self, symbol: sym.Symbol) -> sym.Container:
-		"Returns the 'type' of any symbol."
-		if isinstance(symbol, sym.Function):
-			assert symbol.returns
-			return symbol.returns
-		elif isinstance(symbol, sym.Variable):
-			assert symbol.type
-			return symbol.type
-		else:
-			assert isinstance(symbol, sym.Container)
-			return symbol
+    def typeof(self, symbol: sym.Symbol) -> sym.Container:
+        "Returns the 'type' of any symbol."
+        if isinstance(symbol, sym.Function):
+            assert symbol.returns
+            return symbol.returns
+        elif isinstance(symbol, sym.Variable):
+            assert symbol.type
+            return symbol.type
+        else:
+            assert isinstance(symbol, sym.Container)
+            return symbol
 
 
+    def visitProgram(self, node: Node.Program):
 
-	def visitProgram(self, node: Node.Program):
+        self.program = node
+        self.current_symtable = node.symtable
 
-		self.program = node
-		self.current_symtable = node.symtable
+        for artif in node.artifacts:
+            self.visit(artif)
 
-		for artif in node.artifacts:
-			self.visit(artif)
+        return node
 
-		return node
 
+    def visitFunction(self, node: Node.Function):
 
-	def visitFunction(self, node: Node.Function):
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
+        assert node.symbol
 
-		assert node.symbol
+        self.current_func_sym = node.symbol
 
-		self.current_func_sym = node.symbol
+        for decl in node.params:
+            self.visit(decl)
 
-		for decl in node.params:
-			self.visit(decl)
+        self.visit(node.return_type)
+        symbol = self.symbol_stack.pop()
 
-		self.visit(node.return_type)
-		symbol = self.symbol_stack.pop()
+        if not isinstance(symbol, sym.Container):
+            raise TypeError(f"{symbol} is not a valid type.")
 
-		if not isinstance(symbol, sym.Container):
-			raise TypeError(f"{symbol} is not a valid type.")
-		
-		self.current_func_sym.returns = symbol
-		
-		self.visit(node.body)
+        self.current_func_sym.returns = symbol
 
-		self.current_symtable = self.current_symtable.get_parent()
+        self.visit(node.body)
 
-		return node
+        self.current_symtable = self.current_symtable.get_parent()
 
+        return node
 
-	def visitLiteral(self, node: Node.Literal):
-		match node.type:
-			case "int":
-				self.symbol_stack.append(prim.INT_CONTAINER)
-			case "float":
-				self.symbol_stack.append(prim.FLOAT_CONTAINER)
-			case "bool":
-				self.symbol_stack.append(prim.BOOL_CONTAINER)
-		return node
 
+    def visitLiteral(self, node: Node.Literal):
+        match node.type:
+            case "int":
+                self.symbol_stack.append(prim.INT_CONTAINER)
+            case "float":
+                self.symbol_stack.append(prim.FLOAT_CONTAINER)
+            case "bool":
+                self.symbol_stack.append(prim.BOOL_CONTAINER)
+        return node
 
-	def visitIdentifier(self, node: Node.Identifier):
-		symbol =  self.current_symtable.recursive_get(node.value)
-		assert symbol
-		self.symbol_stack.append(symbol)
-		return node
 
+    def visitIdentifier(self, node: Node.Identifier):
+        symbol =  self.current_symtable.recursive_get(node.value)
+        assert symbol
+        self.symbol_stack.append(symbol)
+        return node
 
-	def visitBlock(self, node: Node.Block):
 
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
+    def visitBlock(self, node: Node.Block):
 
-		for stmt in node.statements:
-			self.visit(stmt)
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
-		self.current_symtable = self.current_symtable.get_parent()
+        for stmt in node.statements:
+            self.visit(stmt)
 
-		return node
+        self.current_symtable = self.current_symtable.get_parent()
 
+        return node
 
-	def visitIf(self, node: Node.If):
-		self.visit(node.condition)
-		self.visit(node.then_branch)
-		if node.else_branch:
-			self.visit(node.else_branch)
-		return node
 
+    def visitIf(self, node: Node.If):
+        self.visit(node.condition)
+        self.visit(node.then_branch)
+        if node.else_branch:
+            self.visit(node.else_branch)
+        return node
 
-	def visitWhile(self, node: Node.While):
-		self.visit(node.condition)
-		self.visit(node.body)
-		return node
 
+    def visitWhile(self, node: Node.While):
+        self.visit(node.condition)
+        self.visit(node.body)
+        return node
 
-	def visitFor(self, node: Node.For):
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
-		self.visit(node.init)
-		self.visit(node.condition)
-		self.visit(node.step)
-		self.visit(node.body)
-		self.current_symtable = node.symtable.get_parent()
-		return node
-		
 
-	def visitDeclaration(self, node: Node.Declaration):
+    def visitFor(self, node: Node.For):
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
+        self.visit(node.init)
+        self.visit(node.condition)
+        self.visit(node.step)
+        self.visit(node.body)
+        self.current_symtable = node.symtable.get_parent()
+        return node
 
-		if node.type is not None:
-			self.visit(node.type)
 
-		assert node.symbol
-		type_sym = self.symbol_stack.pop()
+    def visitDeclaration(self, node: Node.Declaration):
 
-		if not isinstance(type_sym, sym.Container):
-			raise ValueError(f"Expected type to be a container, not {type_sym}.")
+        if node.type is not None:
+            self.visit(node.type)
 
-		node.symbol.type = type_sym
+        assert node.symbol
+        type_sym = self.symbol_stack.pop()
 
-		if node.value is not None:
-			self.visit(node.value)
+        if not isinstance(type_sym, sym.Container):
+            raise ValueError(f"Expected type to be a container, not {type_sym}.")
 
-			value_sym = self.symbol_stack.pop()
-			value_type_sym = self.typeof(value_sym)
+        node.symbol.type = type_sym
 
-			if value_type_sym is None:
-				raise ValueError(f"{value_sym} is not assignable to {node.symbol}")
+        if node.value is not None:
+            self.visit(node.value)
 
-			if value_type_sym is not node.symbol.type:
-				raise ValueError(f"{value_type_sym} is not assignable to {node.symbol}")
-			
-		return node
+            value_sym = self.symbol_stack.pop()
+            value_type_sym = self.typeof(value_sym)
 
+            if value_type_sym is None:
+                raise ValueError(f"{value_sym} is not assignable to {node.symbol}")
 
-	def visitBinaryOp(self, node: Node.BinaryOp):
-		self.visit(node.left)
-		self.visit(node.right)
+            if value_type_sym is not node.symbol.type:
+                raise ValueError(f"{value_type_sym} is not assignable to {node.symbol}")
 
-		typer = self.typeof(self.symbol_stack.pop())
-		typel = self.typeof(self.symbol_stack.pop())
+        return node
 
-		if typer is not typel:
-			raise ValueError(f"Cannot perform {node.op} between {node.left} and {node.right}.")
 
-		self.symbol_stack.append(typer)
+    def visitBinaryOp(self, node: Node.BinaryOp):
+        self.visit(node.left)
+        self.visit(node.right)
 
-		return node
+        typer = self.typeof(self.symbol_stack.pop())
+        typel = self.typeof(self.symbol_stack.pop())
 
+        if typer is not typel:
+            raise ValueError(f"Cannot perform {node.op} between {node.left} and {node.right}.")
 
-	def visitUnaryOp(self, node: Node.UnaryOp):
-		self.visit(node.operand)
-		return node
+        self.symbol_stack.append(typer)
 
+        return node
 
-	def visitCall(self, node: Node.Call):
 
-		self.visit(node.callee)
+    def visitUnaryOp(self, node: Node.UnaryOp):
+        self.visit(node.operand)
+        return node
 
-		func_sym = self.symbol_stack.pop()
 
-		if not isinstance(func_sym, sym.Function):
-			raise ValueError()
+    def visitCall(self, node: Node.Call):
 
-		assert func_sym.returns
-		type_sym = func_sym.returns
+        self.visit(node.callee)
 
-		self.symbol_stack.append(type_sym)
+        func_sym = self.symbol_stack.pop()
 
-		for arg in node.args:
-			self.visit(arg)
+        if not isinstance(func_sym, sym.Function):
+            raise ValueError()
 
-		return node
+        assert func_sym.returns
+        type_sym = func_sym.returns
 
+        self.symbol_stack.append(type_sym)
 
-	def visitReturn(self, node: Node.Return):
-		if node.value is not None:
-			self.visit(node.value)
+        for arg in node.args:
+            self.visit(arg)
 
-		type_sym = self.typeof(self.symbol_stack.pop())
+        return node
 
-		if self.current_func_sym is None:
-			raise TypeError("Return outside of function.")
-		
-		if type_sym is not self.current_func_sym.returns:
-			raise ValueError()
-		
-		return node
 
+    def visitReturn(self, node: Node.Return):
+        if node.value is not None:
+            self.visit(node.value)
 
-	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
-		return node
+        type_sym = self.typeof(self.symbol_stack.pop())
 
-	
-	def visitContainer(self, node: Node.Container):
+        if self.current_func_sym is None:
+            raise TypeError("Return outside of function.")
 
-		assert node.symbol
+        if type_sym is not self.current_func_sym.returns:
+            raise ValueError()
 
-		for member in node.fields:
-			self.visit(member)
-		
-		return node
+        return node
 
 
-	def visitContainerImpl(self, node: Node.ContainerImpl):
+    def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+        return node
 
-		if node.name not in self.current_symtable:
-			raise ValueError("Container not found so can not be implemented")
-		
-		container = self.current_symtable[node.name]
-		assert isinstance(container, sym.Container)
-		node.symbol = container
 
-		for method in node.methods:
-			self.visit(method)
+    def visitContainer(self, node: Node.Container):
 
-		return node
+        assert node.symbol
+
+        for member in node.fields:
+            self.visit(member)
+
+        return node
+
+
+    def visitContainerImpl(self, node: Node.ContainerImpl):
+
+        if node.name not in self.current_symtable:
+            raise ValueError("Container not found so can not be implemented")
+
+        container = self.current_symtable[node.name]
+        assert isinstance(container, sym.Container)
+        node.symbol = container
+
+        for method in node.methods:
+            self.visit(method)
+
+        return node

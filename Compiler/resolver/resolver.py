@@ -8,210 +8,209 @@ from Compiler.defs.primitives import PRIMTIVES
 import Compiler.defs.symbols as sym
 
 
-
 class Resolver(NodeVisitor):
 
 
-	def __init__(self) -> None:
-		super().__init__()
-		self.program: Node.Program
-		self.current_symtable: sym.SymbolTable
-		self.first_pass: bool = True
-		self.in_builtin_context: bool = False
-		self.callee_context: bool = False
+    def __init__(self) -> None:
+        super().__init__()
+        self.program: Node.Program
+        self.current_symtable: sym.SymbolTable
+        self.first_pass: bool = True
+        self.in_builtin_context: bool = False
+        self.callee_context: bool = False
 
 
-	def visitProgram(self, node: Node.Program):
+    def visitProgram(self, node: Node.Program):
 
-		self.program = node
-		self.current_symtable = node.symtable
+        self.program = node
+        self.current_symtable = node.symtable
 
-		self.current_symtable.update(
-			{p.name:p for p in PRIMTIVES}
-		)
+        self.current_symtable.update(
+            {p.name:p for p in PRIMTIVES}
+        )
 
-		self.first_pass = True
+        self.first_pass = True
 
-		for artif in node.artifacts:
-			self.visit(artif)
+        for artif in node.artifacts:
+            self.visit(artif)
 
-		self.first_pass = False
+        self.first_pass = False
 
-		for artif in node.artifacts:
-			self.visit(artif)
+        for artif in node.artifacts:
+            self.visit(artif)
 
-		return node
+        return node
 
 
-	def visitFunction(self, node: Node.Function):
+    def visitFunction(self, node: Node.Function):
 
-		if self.first_pass:
+        if self.first_pass:
 
-			if node.name in self.current_symtable:
-				raise ValueError(f"Redefinition of function: {node.name}")
+            if node.name in self.current_symtable:
+                raise ValueError(f"Redefinition of function: {node.name}")
 
-			node.symbol = sym.Function()
-			node.symbol.name = node.name
+            node.symbol = sym.Function()
+            node.symbol.name = node.name
 
-			if self.current_symtable is self.program.symtable and node.name == var.ENTRYPOINT_FUNC_NAME:
-				node.symbol.is_entrypoint = True
+            if self.current_symtable is self.program.symtable and node.name == var.ENTRYPOINT_FUNC_NAME:
+                node.symbol.is_entrypoint = True
 
-			self.current_symtable[node.name] = node.symbol
+            self.current_symtable[node.name] = node.symbol
 
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
-		for decl in node.params:
-			self.visit(decl)
+        for decl in node.params:
+            self.visit(decl)
 
-		self.visit(node.return_type)
-		self.visit(node.body)
+        self.visit(node.return_type)
+        self.visit(node.body)
 
-		self.current_symtable = self.current_symtable.get_parent()
+        self.current_symtable = self.current_symtable.get_parent()
 
-		return node
+        return node
 
 
-	def visitLiteral(self, node: Node.Literal):
-		return node
+    def visitLiteral(self, node: Node.Literal):
+        return node
 
 
-	def visitIdentifier(self, node: Node.Identifier):
-		if not self.first_pass:
-			symbol = self.current_symtable.recursive_get(node.value, default=None)
-			if symbol is None and not self.in_builtin_context:
-				raise ValueError(f"Unknown identifier: {node.value}")
-			node.refers = symbol
-		return node
+    def visitIdentifier(self, node: Node.Identifier):
+        if not self.first_pass:
+            symbol = self.current_symtable.recursive_get(node.value, default=None)
+            if symbol is None and not self.in_builtin_context:
+                raise ValueError(f"Unknown identifier: {node.value}")
+            node.refers = symbol
+        return node
 
 
-	def visitBlock(self, node: Node.Block):
+    def visitBlock(self, node: Node.Block):
 
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
 
-		for stmt in node.statements:
-			self.visit(stmt)
+        for stmt in node.statements:
+            self.visit(stmt)
 
-		self.current_symtable = self.current_symtable.get_parent()
+        self.current_symtable = self.current_symtable.get_parent()
 
-		return node
+        return node
 
 
-	def visitIf(self, node: Node.If):
-		self.visit(node.condition)
-		self.visit(node.then_branch)
-		if node.else_branch:
-			self.visit(node.else_branch)
-		return node
+    def visitIf(self, node: Node.If):
+        self.visit(node.condition)
+        self.visit(node.then_branch)
+        if node.else_branch:
+            self.visit(node.else_branch)
+        return node
 
 
-	def visitWhile(self, node: Node.While):
-		self.visit(node.condition)
-		self.visit(node.body)
-		return node
+    def visitWhile(self, node: Node.While):
+        self.visit(node.condition)
+        self.visit(node.body)
+        return node
 
 
-	def visitFor(self, node: Node.For):
-		self.current_symtable = node.symtable.set_parent(self.current_symtable)
-		self.visit(node.init)
-		self.visit(node.condition)
-		self.visit(node.step)
-		self.visit(node.body)
-		self.current_symtable = node.symtable.get_parent()
-		return node
-		
+    def visitFor(self, node: Node.For):
+        self.current_symtable = node.symtable.set_parent(self.current_symtable)
+        self.visit(node.init)
+        self.visit(node.condition)
+        self.visit(node.step)
+        self.visit(node.body)
+        self.current_symtable = node.symtable.get_parent()
+        return node
 
-	def visitDeclaration(self, node: Node.Declaration):
 
-		if self.first_pass:
+    def visitDeclaration(self, node: Node.Declaration):
 
-			if node.name in self.current_symtable:
-				raise ValueError(f"Identifier already defined within scope: {node.name}")
-	
-			node.symbol = sym.Variable()
-			node.symbol.name = node.name
+        if self.first_pass:
 
-			self.current_symtable[node.name] = node.symbol
+            if node.name in self.current_symtable:
+                raise ValueError(f"Identifier already defined within scope: {node.name}")
 
-		if node.type is not None:
-			self.visit(node.type)
+            node.symbol = sym.Variable()
+            node.symbol.name = node.name
 
-		if node.value is not None:
-			self.visit(node.value)
+            self.current_symtable[node.name] = node.symbol
 
-		return node
+        if node.type is not None:
+            self.visit(node.type)
 
+        if node.value is not None:
+            self.visit(node.value)
 
-	def visitBinaryOp(self, node: Node.BinaryOp):
-		self.visit(node.left)
-		self.visit(node.right)
-		return node
+        return node
 
 
-	def visitUnaryOp(self, node: Node.UnaryOp):
-		self.visit(node.operand)
-		return node
+    def visitBinaryOp(self, node: Node.BinaryOp):
+        self.visit(node.left)
+        self.visit(node.right)
+        return node
 
 
-	def visitCall(self, node: Node.Call):
-		self.visit(node.callee)
+    def visitUnaryOp(self, node: Node.UnaryOp):
+        self.visit(node.operand)
+        return node
 
-		for arg in node.args:
-			self.visit(arg)
 
-		return node
+    def visitCall(self, node: Node.Call):
+        self.visit(node.callee)
 
+        for arg in node.args:
+            self.visit(arg)
 
-	def visitReturn(self, node: Node.Return):
-		if node.value is not None:
-			self.visit(node.value)
-		return node
+        return node
 
 
-	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
-		# fix for now, we want the builtin handler to handle errors 
-		self.in_builtin_context = True
-		for arg in node.args:
-			self.visit(arg)
-		self.in_builtin_context = False
-		return node
+    def visitReturn(self, node: Node.Return):
+        if node.value is not None:
+            self.visit(node.value)
+        return node
 
-	
-	def visitContainer(self, node: Node.Container):
 
-		if self.first_pass:
+    def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+        # fix for now, we want the builtin handler to handle errors
+        self.in_builtin_context = True
+        for arg in node.args:
+            self.visit(arg)
+        self.in_builtin_context = False
+        return node
 
-			if node.name in self.current_symtable:
-				raise ValueError(f"Identifier already defined within scope: {node.name}")
-			
-			node.symbol = sym.Container()
-			node.symbol.name = node.name
-			node.symbol.virtual = node.virtual
 
-			self.current_symtable[node.symbol.name] = node.symbol
+    def visitContainer(self, node: Node.Container):
 
-		assert node.symbol
+        if self.first_pass:
 
-		for member in node.fields:
-			self.visit(member)
-			assert member.symbol
-			node.symbol.fields[member.symbol.name] = member.symbol
-		
-		return node
+            if node.name in self.current_symtable:
+                raise ValueError(f"Identifier already defined within scope: {node.name}")
 
+            node.symbol = sym.Container()
+            node.symbol.name = node.name
+            node.symbol.virtual = node.virtual
 
-	def visitContainerImpl(self, node: Node.ContainerImpl):
+            self.current_symtable[node.symbol.name] = node.symbol
 
-		if node.name not in self.current_symtable:
-			raise ValueError("Container not found so can not be implemented")
-		
-		container = self.current_symtable[node.name]
-		assert isinstance(container, sym.Container)
-		node.symbol = container
+        assert node.symbol
 
-		for method in node.methods:
-			# we also need to make sure here that any method name is not a field name
-			self.visit(method)
-			assert method.symbol
-			container.methods[method.symbol.name] = method.symbol
+        for member in node.fields:
+            self.visit(member)
+            assert member.symbol
+            node.symbol.fields[member.symbol.name] = member.symbol
 
-		return node
+        return node
+
+
+    def visitContainerImpl(self, node: Node.ContainerImpl):
+
+        if node.name not in self.current_symtable:
+            raise ValueError("Container not found so can not be implemented")
+
+        container = self.current_symtable[node.name]
+        assert isinstance(container, sym.Container)
+        node.symbol = container
+
+        for method in node.methods:
+            # we also need to make sure here that any method name is not a field name
+            self.visit(method)
+            assert method.symbol
+            container.methods[method.symbol.name] = method.symbol
+
+        return node

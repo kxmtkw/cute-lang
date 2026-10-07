@@ -7,356 +7,352 @@ from Compiler.codegen.builtin import BuiltinHandler
 
 import Compiler.defs.symbols as syms
 
-
-
 INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
-	BinaryOpType.Add: InstrSet.addi,
-	BinaryOpType.Sub: InstrSet.subi,
-	BinaryOpType.Mul: InstrSet.muli,
-	BinaryOpType.Div: InstrSet.divi,
-	BinaryOpType.Mod: InstrSet.modi,
-	BinaryOpType.And: InstrSet.and_,
-	BinaryOpType.Or: InstrSet.or_,
-	BinaryOpType.BitAnd: InstrSet.band,
-	BinaryOpType.BitOr: InstrSet.bor,
-	BinaryOpType.BitXor: InstrSet.bxor,
-	BinaryOpType.Shl: InstrSet.bshl,
-	BinaryOpType.Shr: InstrSet.bshr
+    BinaryOpType.Add: InstrSet.addi,
+    BinaryOpType.Sub: InstrSet.subi,
+    BinaryOpType.Mul: InstrSet.muli,
+    BinaryOpType.Div: InstrSet.divi,
+    BinaryOpType.Mod: InstrSet.modi,
+    BinaryOpType.And: InstrSet.and_,
+    BinaryOpType.Or: InstrSet.or_,
+    BinaryOpType.BitAnd: InstrSet.band,
+    BinaryOpType.BitOr: InstrSet.bor,
+    BinaryOpType.BitXor: InstrSet.bxor,
+    BinaryOpType.Shl: InstrSet.bshl,
+    BinaryOpType.Shr: InstrSet.bshr
 }
 
 CMP_INSTRUCTION_ENCODING_TABLE: dict[BinaryOpType, InstrSet] = {
-	BinaryOpType.Eq: InstrSet.eq,
-	BinaryOpType.Neq: InstrSet.ne,
-	BinaryOpType.Lt: InstrSet.lt,
-	BinaryOpType.Lte: InstrSet.le,
-	BinaryOpType.Gt: InstrSet.gt,
-	BinaryOpType.Gte: InstrSet.ge,
+    BinaryOpType.Eq: InstrSet.eq,
+    BinaryOpType.Neq: InstrSet.ne,
+    BinaryOpType.Lt: InstrSet.lt,
+    BinaryOpType.Lte: InstrSet.le,
+    BinaryOpType.Gt: InstrSet.gt,
+    BinaryOpType.Gte: InstrSet.ge,
 }
 
 
 class CodeGenerator(NodeVisitor):
 
-	def __init__(self, outpath: str) -> None:
-		super().__init__()
-		self.outpath = outpath
-		self.state = GeneratorState()
-		self.builder = ImageBuilder()
-		self.program = Program([], [])
-		self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
-		self.entrypoint_found = False
+    def __init__(self, outpath: str) -> None:
+        super().__init__()
+        self.outpath = outpath
+        self.state = GeneratorState()
+        self.builder = ImageBuilder()
+        self.program = Program([], [])
+        self.builtin = BuiltinHandler(self.state, self.builder, self.program)
 
+        self.entrypoint_found = False
 
-	def assignProcedureId(self, func: syms.Function):
-		if func.is_entrypoint:
-			proc_id = 0
-			self.entrypoint_found = True
-		else:
-			proc_id = self.state.get_procedure_id()
 
-		self.state.assign_proc_id(id(func), proc_id)
+    def assignProcedureId(self, func: syms.Function):
+        if func.is_entrypoint:
+            proc_id = 0
+            self.entrypoint_found = True
+        else:
+            proc_id = self.state.get_procedure_id()
 
-	
-	def visitProgram(self, node: Node.Program):
+        self.state.assign_proc_id(id(func), proc_id)
 
-		for artif in node.artifacts:
-			self.visit(artif)
 
-		if not self.entrypoint_found:
-			raise ValueError("main not defined in root scope.")
+    def visitProgram(self, node: Node.Program):
 
-		self.program.assemble(self.builder)
-		image = self.builder.compile()
+        for artif in node.artifacts:
+            self.visit(artif)
 
-		with open(self.outpath, "wb") as file:
-			file.write(image)
+        if not self.entrypoint_found:
+            raise ValueError("main not defined in root scope.")
 
-		print(self.program)
-		return node
+        self.program.assemble(self.builder)
+        image = self.builder.compile()
 
+        with open(self.outpath, "wb") as file:
+            file.write(image)
 
-	def visitFunction(self, node: Node.Function):
+        print(self.program)
+        return node
 
-		assert node.symbol
-		try:
-			proc_id = self.state.get_assigned_proc_id(id(node.symbol))
-		except KeyError:
-			self.assignProcedureId(node.symbol)
-			proc_id = self.state.get_assigned_proc_id(id(node.symbol))
 
-		proc = Procedure(proc_id, len(node.params), [])
+    def visitFunction(self, node: Node.Function):
 
-		self.state.new_procedure(proc)
+        assert node.symbol
+        try:
+            proc_id = self.state.get_assigned_proc_id(id(node.symbol))
+        except KeyError:
+            self.assignProcedureId(node.symbol)
+            proc_id = self.state.get_assigned_proc_id(id(node.symbol))
 
-		for param in node.params:
-			self.visit(param)
+        proc = Procedure(proc_id, len(node.params), [])
 
-		self.visit(node.body)
+        self.state.new_procedure(proc)
 
-		self.program.procedures.append(proc)
+        for param in node.params:
+            self.visit(param)
 
-		self.state.end_procedure()
+        self.visit(node.body)
 
-		return node
+        self.program.procedures.append(proc)
 
-		
+        self.state.end_procedure()
 
-	def visitLiteral(self, node: Node.Literal):
-		slot = self.state.get_tmp_slot()
+        return node
 
-		value: int | float
 
-		if slot is None:
-			raise ValueError()
+    def visitLiteral(self, node: Node.Literal):
+        slot = self.state.get_tmp_slot()
 
-		match node.type:
-			case "int":
-				instr = InstrSet.loadi32
-				value = int(node.value)
-			case "float":
-				instr = InstrSet.loadf32
-				value = float(node.value)
-			case "bool":
-				instr = InstrSet.loadbyte
-				value = 1 if node.value else 0
-			case "char":
-				instr = InstrSet.loadbyte
-				value = ord(str(node.value))
-			case "string":
-				raise ValueError("String literals are not supported yet.")
+        value: int | float
 
-		self.state.current_procedure.instructions.append(
-			Instruction(instr, [slot, value])
-		)
-		
-		self.state.push_slot(slot)
-		return node
+        if slot is None:
+            raise ValueError()
 
+        match node.type:
+            case "int":
+                instr = InstrSet.loadi32
+                value = int(node.value)
+            case "float":
+                instr = InstrSet.loadf32
+                value = float(node.value)
+            case "bool":
+                instr = InstrSet.loadbyte
+                value = 1 if node.value else 0
+            case "char":
+                instr = InstrSet.loadbyte
+                value = ord(str(node.value))
+            case "string":
+                raise ValueError("String literals are not supported yet.")
 
-	def visitIdentifier(self, node: Node.Identifier):
+        self.state.current_procedure.instructions.append(
+            Instruction(instr, [slot, value])
+        )
 
-		referred_sym = node.refers
-		assert referred_sym is not None
+        self.state.push_slot(slot)
+        return node
 
-		if isinstance(referred_sym, syms.Variable):
-			self.state.push_slot(self.state.get_assigned_slot(id(referred_sym)))
 
-		elif isinstance(referred_sym, syms.Function):
-			try:
-				proc_id = self.state.get_assigned_proc_id(id(referred_sym))
-			except KeyError:
-				self.assignProcedureId(referred_sym)
-				proc_id = self.state.get_assigned_proc_id(id(referred_sym))
+    def visitIdentifier(self, node: Node.Identifier):
 
-			slot = self.state.get_tmp_slot()
+        referred_sym = node.refers
+        assert referred_sym is not None
 
-			assert slot is not None
+        if isinstance(referred_sym, syms.Variable):
+            self.state.push_slot(self.state.get_assigned_slot(id(referred_sym)))
 
-			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.loadu32, [slot, proc_id])
-			)
+        elif isinstance(referred_sym, syms.Function):
+            try:
+                proc_id = self.state.get_assigned_proc_id(id(referred_sym))
+            except KeyError:
+                self.assignProcedureId(referred_sym)
+                proc_id = self.state.get_assigned_proc_id(id(referred_sym))
 
-			self.state.push_slot(slot)
+            slot = self.state.get_tmp_slot()
 
-		else:
-			raise RuntimeWarning(f"Identifier {node.value} refers to {node.refers} which cannot be converted into any bytecode representative.")
+            assert slot is not None
 
-		return node
+            self.state.current_procedure.instructions.append(
+                Instruction(InstrSet.loadu32, [slot, proc_id])
+            )
 
+            self.state.push_slot(slot)
 
-	def visitBlock(self, node: Node.Block):
-		for stmt in node.statements:
-			self.visit(stmt)
-		return node
+        else:
+            raise RuntimeWarning(f"Identifier {node.value} refers to {node.refers} which cannot be converted into any bytecode representative.")
 
+        return node
 
-	def visitIf(self, node: Node.If):
 
-		end_if_label = Label(self.state.label())
-		else_branch_label = Label(self.state.label())
+    def visitBlock(self, node: Node.Block):
+        for stmt in node.statements:
+            self.visit(stmt)
+        return node
 
-		self.visit(node.condition)
-		condition_slot = self.state.pop_slot()
-		self.state.free_slot_if_tmp(condition_slot)
 
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.jmpifn, [condition_slot, else_branch_label if node.else_branch else end_if_label])
-		)
-		self.visit(node.then_branch)
-		
-		if node.else_branch:
-			self.state.current_procedure.instructions.append(Instruction(InstrSet.jmp, [end_if_label]))
-			self.state.current_procedure.instructions.append(else_branch_label)
-			self.visit(node.else_branch)
+    def visitIf(self, node: Node.If):
 
-		self.state.current_procedure.instructions.append(end_if_label)
+        end_if_label = Label(self.state.label())
+        else_branch_label = Label(self.state.label())
 
-		return node
+        self.visit(node.condition)
+        condition_slot = self.state.pop_slot()
+        self.state.free_slot_if_tmp(condition_slot)
 
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.jmpifn, [condition_slot, else_branch_label if node.else_branch else end_if_label])
+        )
+        self.visit(node.then_branch)
 
-	def visitWhile(self, node: Node.While):
+        if node.else_branch:
+            self.state.current_procedure.instructions.append(Instruction(InstrSet.jmp, [end_if_label]))
+            self.state.current_procedure.instructions.append(else_branch_label)
+            self.visit(node.else_branch)
 
-		loop_start = Label(self.state.label())
-		loop_end = Label(self.state.label())
-		self.state.current_procedure.instructions.append(loop_start)
+        self.state.current_procedure.instructions.append(end_if_label)
 
-		self.visit(node.condition)
-		t1 = self.state.pop_slot()
-		self.state.free_slot_if_tmp(t1)
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.jmpifn, [t1, loop_end])
-		)
-		self.visit(node.body)
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.jmp, [loop_start])
-		)
-		self.state.current_procedure.instructions.append(loop_end)
+        return node
 
-		return node
 
-		
+    def visitWhile(self, node: Node.While):
 
-	def visitFor(self, node: Node.For):
+        loop_start = Label(self.state.label())
+        loop_end = Label(self.state.label())
+        self.state.current_procedure.instructions.append(loop_start)
 
-		loop_start = Label(self.state.label())
-		loop_end = Label(self.state.label())
-		self.visit(node.init)
-		self.state.current_procedure.instructions.append(loop_start)
-		self.visit(node.condition)
-		t1 = self.state.pop_slot()
-		self.state.free_slot_if_tmp(t1)
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.jmpifn, [t1, loop_end])
-		)
-		self.visit(node.body)
-		self.visit(node.step)
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.jmp, [loop_start])
-		)
-		self.state.current_procedure.instructions.append(loop_end)
+        self.visit(node.condition)
+        t1 = self.state.pop_slot()
+        self.state.free_slot_if_tmp(t1)
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.jmpifn, [t1, loop_end])
+        )
+        self.visit(node.body)
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.jmp, [loop_start])
+        )
+        self.state.current_procedure.instructions.append(loop_end)
 
-		return node
+        return node
 
 
-	def visitDeclaration(self, node: Node.Declaration):
+    def visitFor(self, node: Node.For):
 
-		slot = self.state.get_slot()
-		assert slot is not None
+        loop_start = Label(self.state.label())
+        loop_end = Label(self.state.label())
+        self.visit(node.init)
+        self.state.current_procedure.instructions.append(loop_start)
+        self.visit(node.condition)
+        t1 = self.state.pop_slot()
+        self.state.free_slot_if_tmp(t1)
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.jmpifn, [t1, loop_end])
+        )
+        self.visit(node.body)
+        self.visit(node.step)
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.jmp, [loop_start])
+        )
+        self.state.current_procedure.instructions.append(loop_end)
 
-		self.state.assign_slot(id(node.symbol), slot)
+        return node
 
-		if node.value is not None:
-			self.visit(node.value)
-		
-			value_slot = self.state.pop_slot()
 
-			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.mov, [slot, value_slot])
-			)
-			self.state.free_slot_if_tmp(value_slot)
+    def visitDeclaration(self, node: Node.Declaration):
 
-		return node
+        slot = self.state.get_slot()
+        assert slot is not None
 
+        self.state.assign_slot(id(node.symbol), slot)
 
-	def visitBinaryOp(self, node: Node.BinaryOp):
-		self.visit(node.left)
-		self.visit(node.right)
+        if node.value is not None:
+            self.visit(node.value)
 
-		t2 = self.state.pop_slot()
-		t1 = self.state.pop_slot()
+            value_slot = self.state.pop_slot()
 
-		if node.op == BinaryOpType.Assign:
-			mov = Instruction(InstrSet.mov, [t1, t2])
-			self.state.current_procedure.instructions.append(mov)
+            self.state.current_procedure.instructions.append(
+                Instruction(InstrSet.mov, [slot, value_slot])
+            )
+            self.state.free_slot_if_tmp(value_slot)
 
-		elif node.op in INSTRUCTION_ENCODING_TABLE:
-			slot = self.state.get_tmp_slot()
-			assert slot is not None
-			instr = INSTRUCTION_ENCODING_TABLE[node.op]
-			operation = Instruction(instr, [slot, t1, t2])
-			self.state.current_procedure.instructions.append(operation)
-			self.state.push_slot(slot)
+        return node
 
-		elif node.op in CMP_INSTRUCTION_ENCODING_TABLE:
-			slot = self.state.get_tmp_slot()
-			assert slot is not None
-			instr = CMP_INSTRUCTION_ENCODING_TABLE[node.op]
-			self.state.current_procedure.instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
-			self.state.current_procedure.instructions.append(Instruction(instr, [slot]))
-			self.state.push_slot(slot)
-	
 
-		self.state.free_slot_if_tmp(t2)
-		self.state.free_slot_if_tmp(t1)
+    def visitBinaryOp(self, node: Node.BinaryOp):
+        self.visit(node.left)
+        self.visit(node.right)
 
-		return node
-		
+        t2 = self.state.pop_slot()
+        t1 = self.state.pop_slot()
 
-	def visitUnaryOp(self, node: Node.UnaryOp):
-		return node
+        if node.op == BinaryOpType.Assign:
+            mov = Instruction(InstrSet.mov, [t1, t2])
+            self.state.current_procedure.instructions.append(mov)
 
+        elif node.op in INSTRUCTION_ENCODING_TABLE:
+            slot = self.state.get_tmp_slot()
+            assert slot is not None
+            instr = INSTRUCTION_ENCODING_TABLE[node.op]
+            operation = Instruction(instr, [slot, t1, t2])
+            self.state.current_procedure.instructions.append(operation)
+            self.state.push_slot(slot)
 
-	def visitReturn(self, node: Node.Return):
-		if node.value is not None:
-			self.visit(node.value)
-			slot = self.state.pop_slot()
-			self.state.free_slot_if_tmp(slot)
-			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.retval, [slot])
-			)
-		else:
-			self.state.current_procedure.instructions.append(
-				Instruction(InstrSet.ret, [])
-			)
+        elif node.op in CMP_INSTRUCTION_ENCODING_TABLE:
+            slot = self.state.get_tmp_slot()
+            assert slot is not None
+            instr = CMP_INSTRUCTION_ENCODING_TABLE[node.op]
+            self.state.current_procedure.instructions.append(Instruction(InstrSet.cmpi, [t1, t2]))
+            self.state.current_procedure.instructions.append(Instruction(instr, [slot]))
+            self.state.push_slot(slot)
 
-		return node
+        self.state.free_slot_if_tmp(t2)
+        self.state.free_slot_if_tmp(t1)
 
+        return node
 
-	def visitCall(self, node: Node.Call):
 
-		slots = self.state.get_continous_tmp_slots(len(node.args))
+    def visitUnaryOp(self, node: Node.UnaryOp):
+        return node
 
-		if len(node.args) > 0:
 
-			assert slots is not None
+    def visitReturn(self, node: Node.Return):
+        if node.value is not None:
+            self.visit(node.value)
+            slot = self.state.pop_slot()
+            self.state.free_slot_if_tmp(slot)
+            self.state.current_procedure.instructions.append(
+                Instruction(InstrSet.retval, [slot])
+            )
+        else:
+            self.state.current_procedure.instructions.append(
+                Instruction(InstrSet.ret, [])
+            )
 
-			for i, arg in enumerate(node.args):
-				self.visit(arg)
-				expr_slot = self.state.pop_slot()
-				mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
-				self.state.current_procedure.instructions.append(mov)
-				self.state.free_slot_if_tmp(expr_slot)
+        return node
 
-		self.visit(node.callee)
 
-		callee_slot = self.state.pop_slot()
-		return_slot = self.state.get_tmp_slot()
+    def visitCall(self, node: Node.Call):
 
-		assert return_slot is not None
-		arg_start_slot = slots[0] if slots is not None else 0
+        slots = self.state.get_continous_tmp_slots(len(node.args))
 
-		self.state.current_procedure.instructions.append(
-			Instruction(InstrSet.call, [callee_slot, arg_start_slot, return_slot])
-		)
+        if len(node.args) > 0:
 
-		self.state.push_slot(return_slot)
-		self.state.free_slot_if_tmp(callee_slot)
+            assert slots is not None
 
-		if slots is not None:
-			for slot in slots:
-				self.state.free_slot_if_tmp(slot)
+            for i, arg in enumerate(node.args):
+                self.visit(arg)
+                expr_slot = self.state.pop_slot()
+                mov = Instruction(InstrSet.mov, [slots[i], expr_slot])
+                self.state.current_procedure.instructions.append(mov)
+                self.state.free_slot_if_tmp(expr_slot)
 
-		return node
+        self.visit(node.callee)
 
+        callee_slot = self.state.pop_slot()
+        return_slot = self.state.get_tmp_slot()
 
-	def visitBuiltinCommand(self, node: Node.BuiltinCommand):
-		self.builtin.handle(node)
-		return node
+        assert return_slot is not None
+        arg_start_slot = slots[0] if slots is not None else 0
 
+        self.state.current_procedure.instructions.append(
+            Instruction(InstrSet.call, [callee_slot, arg_start_slot, return_slot])
+        )
 
-	def visitContainer(self, node: Node.Container):
-		return super().visitContainer(node)
+        self.state.push_slot(return_slot)
+        self.state.free_slot_if_tmp(callee_slot)
 
+        if slots is not None:
+            for slot in slots:
+                self.state.free_slot_if_tmp(slot)
 
-	def visitContainerImpl(self, node: Node.ContainerImpl):
-		return super().visitContainerImpl(node)
+        return node
+
+
+    def visitBuiltinCommand(self, node: Node.BuiltinCommand):
+        self.builtin.handle(node)
+        return node
+
+
+    def visitContainer(self, node: Node.Container):
+        return super().visitContainer(node)
+
+
+    def visitContainerImpl(self, node: Node.ContainerImpl):
+        return super().visitContainerImpl(node)
